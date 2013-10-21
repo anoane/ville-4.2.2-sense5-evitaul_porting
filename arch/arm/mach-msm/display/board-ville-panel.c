@@ -508,6 +508,8 @@ static inline void ville_mipi_dsi_set_backlight(struct msm_fb_data_type *mfd)
 		cmdreq.cmds = samsung_cmd_backlight_cmds;
 		cmdreq.cmds_cnt = ARRAY_SIZE(samsung_cmd_backlight_cmds);
 		cmdreq.flags = CMD_REQ_COMMIT;
+		if (mfd && mfd->panel_info.type == MIPI_CMD_PANEL)
+			cmdreq.flags |= CMD_CLK_CTRL;
 		cmdreq.rlen = 0;
 		cmdreq.cb = NULL;
 		mipi_dsi_cmdlist_put(&cmdreq);
@@ -555,6 +557,8 @@ static int ville_lcd_on(struct platform_device *pdev)
 				cmdreq.cmds_cnt = ARRAY_SIZE(samsung_cmd_on_cmds);
 			}
 			cmdreq.flags = CMD_REQ_COMMIT;
+			if (mfd && mfd->panel_info.type == MIPI_CMD_PANEL)
+				cmdreq.flags |= CMD_CLK_CTRL;
 			cmdreq.rlen = 0;
 			cmdreq.cb = NULL;
 			mipi_dsi_cmdlist_put(&cmdreq);
@@ -579,6 +583,8 @@ static void ville_display_on(struct msm_fb_data_type *mfd)
 		cmdreq.cmds_cnt = ARRAY_SIZE(samsung_display_on_cmds);
 	}
 	cmdreq.flags = CMD_REQ_COMMIT;
+	if (mfd && mfd->panel_info.type == MIPI_CMD_PANEL)
+		cmdreq.flags |= CMD_CLK_CTRL;
 	cmdreq.rlen = 0;
 	cmdreq.cb = NULL;
 	mipi_dsi_cmdlist_put(&cmdreq);
@@ -616,6 +622,8 @@ static int ville_lcd_off(struct platform_device *pdev)
 		cmdreq.cmds_cnt = ARRAY_SIZE(auo_display_off_cmds);
 	}
 	cmdreq.flags = CMD_REQ_COMMIT;
+	if (mfd && mfd->panel_info.type == MIPI_CMD_PANEL)
+		cmdreq.flags |= CMD_CLK_CTRL;
 	cmdreq.rlen = 0;
 	cmdreq.cb = NULL;
 

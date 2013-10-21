@@ -11,11 +11,18 @@
  *
  */
 
-#ifndef MIPI_TC358764_DSI2LVDS_H
-#define MIPI_TC358764_DSI2LVDS_H
+#ifndef _WRITEBACK_UTIL_H_
+#define _WRITEBACK_UTIL_H_
 
-#define PWM_LEVEL 255
+#define DEBUG
 
-int mipi_tc358764_dsi2lvds_register(struct msm_panel_info *pinfo,
-	u32 channel_id, u32 panel_id);
-#endif  
+#ifdef DEBUG
+	#define WRITEBACK_MSG_INFO(fmt...) pr_info(fmt)
+	#define WRITEBACK_MSG_WARN(fmt...) pr_warning(fmt)
+#else
+	#define WRITEBACK_MSG_INFO(fmt...)
+	#define WRITEBACK_MSG_WARN(fmt...)
+#endif
+	#define WRITEBACK_MSG_ERR(fmt...) pr_err(fmt)
+	#define WRITEBACK_MSG_CRIT(fmt...) pr_crit(fmt)
+#endif
