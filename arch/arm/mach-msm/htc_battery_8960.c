@@ -83,6 +83,7 @@ static int suspend_highfreq_check_reason;
 #define CONTEXT_STATE_BIT_TALK			(1)
 #define CONTEXT_STATE_BIT_SEARCH		(1<<1)
 #define CONTEXT_STATE_BIT_NAVIGATION	(1<<2)
+#define CONTEXT_STATE_BIT_DAYDREAM		(1<<3)
 static int context_state;
 
 #define STATE_WORKQUEUE_PENDING			(1)
@@ -147,7 +148,7 @@ struct htc_battery_info {
 	int critical_alarm_vol_cols;
 	int overload_vol_thr_mv;
 	int overload_curr_thr_ma;
-
+	int smooth_chg_full_delay_min;
 	struct kobject batt_timer_kobj;
 	struct kobject batt_cable_kobj;
 
@@ -763,6 +764,16 @@ static int htc_batt_context_event_handler(enum batt_context_event event)
 			goto exit;
 		context_state &= ~CONTEXT_STATE_BIT_NAVIGATION;
 		break;
+	case EVENT_DAYDREAM_START:
+		if (context_state & CONTEXT_STATE_BIT_DAYDREAM)
+			goto exit;
+		context_state |= CONTEXT_STATE_BIT_DAYDREAM;
+		break;
+	case EVENT_DAYDREAM_STOP:
+		if (!(context_state & CONTEXT_STATE_BIT_DAYDREAM))
+			goto exit;
+		context_state &= ~CONTEXT_STATE_BIT_DAYDREAM;
+		break;
 	default:
 		pr_warn("unsupported context event (%d)\n", event);
 		goto exit;
@@ -1323,38 +1334,47 @@ static void batt_level_adjust(unsigned long time_since_last_update_ms)
 		if (htc_batt_info.igauge->is_battery_full) {
 			htc_batt_info.igauge->is_battery_full(&is_full);
 			if (is_full != 0) {
-				htc_batt_info.rep.level = 100; 
+				if (htc_batt_info.smooth_chg_full_delay_min
+					&& prev_level < 100) {
+					htc_batt_info.rep.level = prev_level + 1;
+				} else {
+					htc_batt_info.rep.level = 100; 
+				}
 			} else {
 				if (99 < htc_batt_info.rep.level)
 					htc_batt_info.rep.level = 99; 
+				if (!htc_batt_info.smooth_chg_full_delay_min) {
+					if (htc_batt_info.rep.level > limit_level_curr_table[0].level_boundary
+						&& prev_level < htc_batt_info.rep.level) {
 
-				if (htc_batt_info.rep.level > limit_level_curr_table[0].level_boundary &&
-						prev_level < htc_batt_info.rep.level) {
-
-					measured_current = htc_batt_info.rep.batt_current;
-					if (measured_current <= 0) {
-						if (prev_current > 0 || prev_current < measured_current)
-							measured_current = prev_current;
-					}
-
-					if (measured_current <= 0) {
-						for (i = 0; i < LIMIT_LEVEL_CURR_TABLE_SIZE; i++) {
-							if (measured_current < limit_level_curr_table[i].threshold_ma * 1000) {
-								break;
-							}
+						measured_current = htc_batt_info.rep.batt_current;
+						if (measured_current <= 0) {
+							if (prev_current > 0 || prev_current < measured_current)
+								measured_current = prev_current;
 						}
-					} else {
-						i = 0;
-					}
 
-					if (i < LIMIT_LEVEL_CURR_TABLE_SIZE && htc_batt_info.rep.level >= limit_level_curr_table[i].level_boundary) {
-						if (prev_level >= limit_level_curr_table[i].level_boundary)
-							htc_batt_info.rep.level = prev_level;
-						else
-							htc_batt_info.rep.level = limit_level_curr_table[i].level_boundary - 1;
-						pr_info("[BATT] limit battery level to %d(prev=%d) by (%d,%d) with measured current %d\n",
-							htc_batt_info.rep.level, prev_level, limit_level_curr_table[i].level_boundary,
-							limit_level_curr_table[i].threshold_ma,	measured_current);
+						if (measured_current <= 0) {
+							for (i = 0; i < LIMIT_LEVEL_CURR_TABLE_SIZE; i++) {
+								if (measured_current <
+									limit_level_curr_table[i].threshold_ma * 1000) {
+									break;
+								}
+							}
+						} else {
+							i = 0;
+						}
+
+						if (i < LIMIT_LEVEL_CURR_TABLE_SIZE
+							&& htc_batt_info.rep.level >= limit_level_curr_table[i].level_boundary) {
+							if (prev_level >= limit_level_curr_table[i].level_boundary)
+								htc_batt_info.rep.level = prev_level;
+							else
+								htc_batt_info.rep.level = limit_level_curr_table[i].level_boundary - 1;
+							pr_info("[BATT] limit battery level to %d(prev=%d) by (%d,%d) "
+								       "with measured current %d\n",
+								htc_batt_info.rep.level, prev_level, limit_level_curr_table[i].level_boundary,
+								limit_level_curr_table[i].threshold_ma,	measured_current);
+						}
 					}
 				}
 			}
@@ -1367,7 +1387,8 @@ static void batt_level_adjust(unsigned long time_since_last_update_ms)
 
 static void batt_update_limited_charge(void)
 {
-	if (htc_batt_info.state & STATE_EARLY_SUSPEND) {
+	if ((htc_batt_info.state & STATE_EARLY_SUSPEND)
+		|| (context_state & CONTEXT_STATE_BIT_DAYDREAM)) {
 		
 		set_limit_charge_with_reason(false, HTC_BATT_CHG_LIMIT_BIT_THRML);
 	} else {
@@ -1624,7 +1645,7 @@ static void batt_worker(struct work_struct *work)
 		
 		pr_info("[BATT] prev_chg_src=%d, prev_chg_en=%d,"
 				" chg_dis_reason/control/active=0x%x/0x%x/0x%x,"
-				" chg_limit_reason=0x%x,"
+				" chg_limit_reason/active=0x%x/0x%x,"
 				" pwrsrc_dis_reason=0x%x, prev_pwrsrc_enabled=%d,"
 				" context_state=0x%x,"
 				" htc_extension=0x%x, sw_stimer_counter=%ld\n",
@@ -1633,6 +1654,7 @@ static void batt_worker(struct work_struct *work)
 					chg_dis_reason & chg_dis_control_mask,
 					chg_dis_reason & chg_dis_active_mask,
 					chg_limit_reason,
+					chg_limit_active_mask,
 					pwrsrc_dis_reason, prev_pwrsrc_enabled,
 					context_state,
 					htc_batt_info.htc_extension,
@@ -2112,6 +2134,7 @@ static int htc_battery_probe(struct platform_device *pdev)
 	}
 	htc_batt_info.overload_vol_thr_mv = pdata->overload_vol_thr_mv;
 	htc_batt_info.overload_curr_thr_ma = pdata->overload_curr_thr_ma;
+	htc_batt_info.smooth_chg_full_delay_min = pdata->smooth_chg_full_delay_min;
 	chg_limit_active_mask = pdata->chg_limit_active_mask;
 	htc_batt_info.igauge = &pdata->igauge;
 	htc_batt_info.icharger = &pdata->icharger;

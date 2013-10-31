@@ -508,8 +508,8 @@ static inline void ville_mipi_dsi_set_backlight(struct msm_fb_data_type *mfd)
 		cmdreq.cmds = samsung_cmd_backlight_cmds;
 		cmdreq.cmds_cnt = ARRAY_SIZE(samsung_cmd_backlight_cmds);
 		cmdreq.flags = CMD_REQ_COMMIT;
-		if (mfd && mfd->panel_info.type == MIPI_CMD_PANEL)
-			cmdreq.flags |= CMD_CLK_CTRL;
+		//if (mfd && mfd->panel_info.type == MIPI_CMD_PANEL)
+		//	cmdreq.flags |= CMD_CLK_CTRL;
 		cmdreq.rlen = 0;
 		cmdreq.cb = NULL;
 		mipi_dsi_cmdlist_put(&cmdreq);
@@ -557,8 +557,8 @@ static int ville_lcd_on(struct platform_device *pdev)
 				cmdreq.cmds_cnt = ARRAY_SIZE(samsung_cmd_on_cmds);
 			}
 			cmdreq.flags = CMD_REQ_COMMIT;
-			if (mfd && mfd->panel_info.type == MIPI_CMD_PANEL)
-				cmdreq.flags |= CMD_CLK_CTRL;
+			//if (mfd && mfd->panel_info.type == MIPI_CMD_PANEL)
+			//	cmdreq.flags |= CMD_CLK_CTRL;
 			cmdreq.rlen = 0;
 			cmdreq.cb = NULL;
 			mipi_dsi_cmdlist_put(&cmdreq);
@@ -834,6 +834,14 @@ static int mipi_cmd_samsung_blue_qhd_pt_init(void)
 	pinfo.mipi.rgb_swap = DSI_RGB_SWAP_RGB;
 	pinfo.mipi.data_lane0 = TRUE;
 	pinfo.mipi.data_lane1 = TRUE;
+	
+	//new
+	pinfo.mipi.data_lane2 = TRUE;
+	pinfo.mipi.data_lane3 = TRUE;
+	
+	//new
+	pinfo.mipi.tx_eot_append = TRUE;
+	
 	pinfo.mipi.t_clk_post = 0x0a;
 	pinfo.mipi.t_clk_pre = 0x20;
 	pinfo.mipi.stream = 0;	
@@ -844,7 +852,14 @@ static int mipi_cmd_samsung_blue_qhd_pt_init(void)
 	pinfo.mipi.insert_dcs_cmd = TRUE;
 	pinfo.mipi.wr_mem_continue = 0x3c;
 	pinfo.mipi.wr_mem_start = 0x2c;
+	
+	//new
+	pinfo.mipi.frame_rate = 60;
+	
 	pinfo.mipi.dsi_phy_db = &dsi_cmd_mode_phy_db;
+	
+	//new
+	pinfo.mipi.esc_byte_ratio = 5;
 
 	ret = mipi_samsung_device_register(&pinfo, MIPI_DSI_PRIM,
 						MIPI_DSI_PANEL_WVGA_PT);

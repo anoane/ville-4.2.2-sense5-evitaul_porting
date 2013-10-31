@@ -63,10 +63,21 @@ void grab_swap_token(struct mm_struct *mm)
 	if (!spin_trylock(&swap_token_lock))
 		return;
 
-	
+	/* First come first served */
 	if (!swap_token_mm)
 		goto replace_token;
 
+	/*
+	 * Usually, we don't need priority aging because long interval faults
+	 * makes priority decrease quickly. But there is one exception. If the
+	 * token owner task is sleeping, it never make long interval faults.
+	 * Thus, we need a priority aging mechanism instead. The requirements
+	 * of priority aging are
+	 *  1) An aging interval is reasonable enough long. Too short aging
+	 *     interval makes quick swap token lost and decrease performance.
+	 *  2) The swap token owner task have to get priority aging even if
+	 *     it's under sleep.
+	 */
 	if ((global_faults - last_aging) > TOKEN_AGING_INTERVAL) {
 		swap_token_mm->token_priority /= 2;
 		last_aging = global_faults;
@@ -84,7 +95,7 @@ void grab_swap_token(struct mm_struct *mm)
 			mm->token_priority--;
 	}
 
-	
+	/* Check if we deserve the token */
 	if (mm->token_priority > swap_token_mm->token_priority)
 		goto replace_token;
 
@@ -106,6 +117,7 @@ replace_token:
 	goto out;
 }
 
+/* Called on process exit. */
 void __put_swap_token(struct mm_struct *mm)
 {
 	spin_lock(&swap_token_lock);
@@ -130,7 +142,7 @@ static bool match_memcg(struct mem_cgroup *a, struct mem_cgroup *b)
 
 void disable_swap_token(struct mem_cgroup *memcg)
 {
-	
+	/* memcg reclaim don't disable unrelated mm token. */
 	if (match_memcg(memcg, swap_token_memcg)) {
 		spin_lock(&swap_token_lock);
 		if (match_memcg(memcg, swap_token_memcg)) {

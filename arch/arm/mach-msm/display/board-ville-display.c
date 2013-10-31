@@ -232,11 +232,34 @@ static struct msm_panel_common_pdata mdp_pdata = {
 #else
 	.mem_hid = MEMTYPE_EBI1,
 #endif
-	
-
+	.cont_splash_enabled = 0x00,
 	.mdp_gamma = ville_mdp_gamma,
+	.mdp_iommu_split_domain = 1,
 	.mdp_max_clk = 200000000,
 };
+
+static char wfd_check_mdp_iommu_split_domain(void)
+{
+    return mdp_pdata.mdp_iommu_split_domain;
+}
+
+#ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
+static struct msm_wfd_platform_data wfd_pdata = {
+    .wfd_check_mdp_iommu_split = wfd_check_mdp_iommu_split_domain,
+};
+
+static struct platform_device wfd_panel_device = {
+    .name = "wfd_panel",
+    .id = 0,
+    .dev.platform_data = NULL,
+};
+
+static struct platform_device wfd_device = {
+    .name          = "msm_wfd",
+    .id            = -1,
+    .dev.platform_data = &wfd_pdata,
+};
+#endif
 
 void __init msm8960_mdp_writeback(struct memtype_reserve* reserve_table)
 {
@@ -310,6 +333,7 @@ static struct platform_device msm_fb_device = {
 void __init msm8960_init_fb(void)
 {
 	platform_device_register(&msm_fb_device);
+	mdp_pdata.cont_splash_enabled = 0x1;
 #ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
 	platform_device_register(&wfd_panel_device);
 	platform_device_register(&wfd_device);

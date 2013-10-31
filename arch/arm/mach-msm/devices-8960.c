@@ -854,7 +854,7 @@ static struct msm_bus_paths vidc_bus_client_config[] = {
 	},
 	{
 		ARRAY_SIZE(vidc_venc_1080p_turbo_vectors),
-		vidc_vdec_1080p_turbo_vectors,
+		vidc_venc_1080p_turbo_vectors,
 	},
 	{
 		ARRAY_SIZE(vidc_vdec_1080p_turbo_vectors),
@@ -2205,6 +2205,11 @@ struct platform_device msm_pcm = {
 struct platform_device msm_multi_ch_pcm = {
 	.name	= "msm-multi-ch-pcm-dsp",
 	.id	= -1,
+};
+
+struct platform_device msm_lowlatency_pcm = {
+   .name   = "msm-lowlatency-pcm-dsp",
+   .id = -1,
 };
 
 struct platform_device msm_pcm_routing = {
