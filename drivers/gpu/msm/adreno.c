@@ -212,6 +212,7 @@ static void adreno_perfcounter_start(struct adreno_device *adreno_dev)
 	struct adreno_perfcount_group *group;
 	unsigned int i, j;
 
+	printk(KERN_WARNING "crash: %d\n",counters->group_count);
 	
 	for (i = 0; i < counters->group_count; i++) {
 		group = &(counters->groups[i]);
@@ -1238,8 +1239,9 @@ static int adreno_init(struct kgsl_device *device)
 
 	ft_detect_regs[0] = adreno_dev->gpudev->reg_rbbm_status;
 
-	adreno_perfcounter_init(device);
-
+	if (adreno_is_a3xx(adreno_dev)) {
+		adreno_perfcounter_init(device);
+	}
 	
 	kgsl_pwrctrl_disable(device);
 
@@ -1306,7 +1308,9 @@ static int adreno_start(struct kgsl_device *device)
 	if (KGSL_STATE_DUMP_AND_FT != device->state)
 		mod_timer(&device->idle_timer, jiffies + FIRST_TIMEOUT);
 
-	adreno_perfcounter_start(adreno_dev);
+	if (adreno_is_a3xx(adreno_dev)) {
+		adreno_perfcounter_start(adreno_dev);
+	}
 
 	device->reset_counter++;
 
