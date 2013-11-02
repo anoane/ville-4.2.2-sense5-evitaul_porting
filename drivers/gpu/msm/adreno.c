@@ -212,7 +212,6 @@ static void adreno_perfcounter_start(struct adreno_device *adreno_dev)
 	struct adreno_perfcount_group *group;
 	unsigned int i, j;
 
-	printk(KERN_WARNING "crash: %d\n",counters->group_count);
 	
 	for (i = 0; i < counters->group_count; i++) {
 		group = &(counters->groups[i]);
@@ -551,8 +550,10 @@ static void adreno_iommu_setstate(struct kgsl_device *device,
 
 	cmds += adreno_add_idle_cmds(adreno_dev, cmds);
 
-	
-	cmds += kgsl_mmu_sync_lock(&device->mmu, cmds);
+	if (!adreno_is_a2xx(adreno_dev)) {
+		/* Acquire GPU-CPU sync Lock here */
+		cmds += kgsl_mmu_sync_lock(&device->mmu, cmds);
+	}
 
 	pt_val = kgsl_mmu_get_pt_base_addr(&device->mmu,
 					device->mmu.hwpagetable);
@@ -600,8 +601,10 @@ static void adreno_iommu_setstate(struct kgsl_device *device,
 		}
 	}
 
-	
-	cmds += kgsl_mmu_sync_unlock(&device->mmu, cmds);
+	if (!adreno_is_a2xx(adreno_dev)) {
+		/* Release GPU-CPU sync Lock here */
+		cmds += kgsl_mmu_sync_unlock(&device->mmu, cmds);
+	}
 
 	if (cpu_is_msm8960())
 		cmds += adreno_add_change_mh_phys_limit_cmds(cmds,
@@ -1239,9 +1242,9 @@ static int adreno_init(struct kgsl_device *device)
 
 	ft_detect_regs[0] = adreno_dev->gpudev->reg_rbbm_status;
 
-	if (adreno_is_a3xx(adreno_dev)) {
+	if (!adreno_is_a2xx(adreno_dev))
 		adreno_perfcounter_init(device);
-	}
+
 	
 	kgsl_pwrctrl_disable(device);
 
@@ -1308,8 +1311,25 @@ static int adreno_start(struct kgsl_device *device)
 	if (KGSL_STATE_DUMP_AND_FT != device->state)
 		mod_timer(&device->idle_timer, jiffies + FIRST_TIMEOUT);
 
-	if (adreno_is_a3xx(adreno_dev)) {
+	if (!adreno_is_a2xx(adreno_dev))
 		adreno_perfcounter_start(adreno_dev);
+	else {
+		unsigned int reg;
+
+		kgsl_regread(device, REG_RBBM_PM_OVERRIDE2, &reg);
+		kgsl_regwrite(device, REG_RBBM_PM_OVERRIDE2, (reg | 0x40));
+
+		/*
+		 * Select SP_ALU_INSTR_EXEC (0x85) to get number of
+		 * ALU instructions executed.
+		 */
+		kgsl_regwrite(device, REG_SQ_PERFCOUNTER3_SELECT, 0x85);
+
+		kgsl_regwrite(device, REG_CP_PERFMON_CNTL,
+			REG_PERF_MODE_CNT | REG_PERF_STATE_ENABLE);
+
+		ft_detect_regs[6] = REG_SQ_PERFCOUNTER3_LO;
+		ft_detect_regs[7] = REG_SQ_PERFCOUNTER3_HI;
 	}
 
 	device->reset_counter++;
