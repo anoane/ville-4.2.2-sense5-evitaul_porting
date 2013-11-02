@@ -3902,7 +3902,7 @@ static void __init msm8960_i2c_init(void)
 	msm8960_device_qup_i2c_gsbi5.dev.platform_data =
 					&msm8960_i2c_qup_gsbi5_pdata;
 }
-
+/*
 #ifdef CONFIG_MSM_DCVS
 static struct msm_dcvs_freq_entry grp3d_freq[] = {
        {0, 0, 333932},
@@ -4109,13 +4109,45 @@ static void __init msm8960_gfx_init(void)
 	
 	platform_device_register(&device_kgsl_3d0);
 
-	/*
-	 * temporary disabled
+	//temporary disabled
+	//if (!cpu_is_msm8960ab()) {
+	//	platform_device_register(&msm_kgsl_2d0);
+	//	platform_device_register(&msm_kgsl_2d1);
+	//}
+	
+}
+*/
+
+static void __init msm8960_gfx_init(void)
+{
+	struct kgsl_device_platform_data *kgsl_3d0_pdata =
+		msm_kgsl_3d0.dev.platform_data;
+	uint32_t soc_platform_version = socinfo_get_version();
+
+	
+	if (cpu_is_msm8960ab()) {
+		kgsl_3d0_pdata->chipid = ADRENO_CHIPID(3, 2, 1, 0);
+		
+		kgsl_3d0_pdata->pwrlevel[1].gpu_freq = 320000000;
+	} else {
+		kgsl_3d0_pdata->iommu_count = 1;
+		if (SOCINFO_VERSION_MAJOR(soc_platform_version) == 1) {
+			kgsl_3d0_pdata->pwrlevel[0].gpu_freq = 320000000;
+			kgsl_3d0_pdata->pwrlevel[1].gpu_freq = 266667000;
+		}
+		if (SOCINFO_VERSION_MAJOR(soc_platform_version) >= 3) {
+			kgsl_3d0_pdata->chipid = ADRENO_CHIPID(2, 2, 0, 6);
+		}
+	}
+
+	
+	platform_device_register(&msm_kgsl_3d0);
+
+	
 	if (!cpu_is_msm8960ab()) {
 		platform_device_register(&msm_kgsl_2d0);
 		platform_device_register(&msm_kgsl_2d1);
 	}
-	*/
 }
 
 #ifdef CONFIG_HTC_BATT_8960

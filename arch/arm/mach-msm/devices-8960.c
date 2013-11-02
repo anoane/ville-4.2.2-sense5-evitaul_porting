@@ -2906,7 +2906,6 @@ struct platform_device msm_slim_ctrl = {
 	},
 };
 
-/*
 static struct msm_dcvs_freq_entry grp3d_freq[] = {
 	{0, 0, 333932},
 	{0, 0, 497532},
@@ -3335,8 +3334,6 @@ struct platform_device msm_kgsl_2d1 = {
 		.platform_data = &kgsl_2d1_pdata,
 	},
 };
-
-*/
 
 #ifdef CONFIG_MSM_GEMINI
 static struct resource msm_gemini_resources[] = {
