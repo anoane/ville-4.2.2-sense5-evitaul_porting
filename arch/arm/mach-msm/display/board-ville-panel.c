@@ -203,6 +203,7 @@ static struct dsi_cmd_desc auo_display_off_cmds[] = {
 		sizeof(slpin_cmd), slpin_cmd}
 };
 
+#ifdef PANEL_READ_MANU_ID
 static char manufacture_id[2] = {0x04, 0x00}; 		
 
 static struct dsi_cmd_desc samsung_manufacture_id_cmd = {
@@ -221,6 +222,12 @@ static uint32 mipi_samsung_manufacture_id(struct msm_fb_data_type *mfd)
 	cmd = &samsung_manufacture_id_cmd;
 	return 0;
 }
+#else
+static uint32 mipi_samsung_manufacture_id(struct msm_fb_data_type *mfd)
+{
+	return 0;
+}
+#endif
 
 
 #define PWM_MIN                   30
@@ -496,13 +503,6 @@ static inline void ville_mipi_dsi_set_backlight(struct msm_fb_data_type *mfd)
 		ville_shrink_pwm_c2(mfd->bl_level);
 	else if (panel_type == PANEL_ID_VILLE_SAMSUNG_SG)
 		ville_shrink_pwm(mfd->bl_level);
-
-#if 0
-	if (mdp4_overlay_dsi_state_get() <= ST_DSI_SUSPEND) {
-		mutex_unlock(&mfd->dma->ov_mutex);
-		return;
-	}
-#endif
 
 	if (panel_type == PANEL_ID_VILLE_SAMSUNG_SG || panel_type == PANEL_ID_VILLE_SAMSUNG_SG_C2) {
 		cmdreq.cmds = samsung_cmd_backlight_cmds;
@@ -799,7 +799,7 @@ static int mipi_cmd_samsung_blue_qhd_pt_init(void)
 	pinfo.width = 49;
 	pinfo.height = 87;
 	pinfo.camera_backlight = 135;
-
+	pinfo.mipi.frame_rate = 60;
 	pinfo.lcdc.h_back_porch = 64;
 	pinfo.lcdc.h_front_porch = 96;
 	pinfo.lcdc.h_pulse_width = 32;
@@ -818,8 +818,8 @@ static int mipi_cmd_samsung_blue_qhd_pt_init(void)
 	pinfo.clk_rate = 482000000;
 	pinfo.lcd.vsync_enable = TRUE;
 	pinfo.lcd.hw_vsync_mode = TRUE;
-	pinfo.lcd.refx100 = 6096; 
-
+	pinfo.lcd.refx100 = 5700; 
+	pinfo.read_pointer = 275;
 	pinfo.mipi.mode = DSI_CMD_MODE;
 	pinfo.mipi.dst_format = DSI_CMD_DST_FORMAT_RGB888;
 	pinfo.mipi.vc = 0;
