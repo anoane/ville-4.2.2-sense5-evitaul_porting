@@ -115,7 +115,6 @@ struct msm_otg_platform_data {
 	char *ldo_1v8_name;
 	char *vddcx_name;
 	bool disable_reset_on_disconnect;
-	bool enable_dcd;
 	bool enable_lpm_on_dev_suspend;
 	bool core_clk_always_on_workaround;
 	struct msm_bus_scale_pdata *bus_scale_table;

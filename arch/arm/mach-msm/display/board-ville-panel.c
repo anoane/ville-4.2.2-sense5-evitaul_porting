@@ -508,6 +508,9 @@ static inline void ville_mipi_dsi_set_backlight(struct msm_fb_data_type *mfd)
 		cmdreq.cmds = samsung_cmd_backlight_cmds;
 		cmdreq.cmds_cnt = ARRAY_SIZE(samsung_cmd_backlight_cmds);
 		cmdreq.flags = CMD_REQ_COMMIT;
+		if (mfd && mfd->panel_info.type == MIPI_CMD_PANEL)
+			cmdreq.flags |= CMD_CLK_CTRL;
+	  
 		cmdreq.rlen = 0;
 		cmdreq.cb = NULL;
 		mipi_dsi_cmdlist_put(&cmdreq);
@@ -579,6 +582,9 @@ static void ville_display_on(struct msm_fb_data_type *mfd)
 		cmdreq.cmds_cnt = ARRAY_SIZE(samsung_display_on_cmds);
 	}
 	cmdreq.flags = CMD_REQ_COMMIT;
+	if (mfd && mfd->panel_info.type == MIPI_CMD_PANEL)
+		cmdreq.flags |= CMD_CLK_CTRL;
+	
 	cmdreq.rlen = 0;
 	cmdreq.cb = NULL;
 	mipi_dsi_cmdlist_put(&cmdreq);
@@ -838,6 +844,7 @@ static int mipi_cmd_samsung_blue_qhd_pt_init(void)
 	pinfo.mipi.wr_mem_start = 0x2c;
 	pinfo.mipi.dsi_phy_db = &dsi_cmd_mode_phy_db;
 	
+	pinfo.mipi.frame_rate = 59;
 	pinfo.mipi.esc_byte_ratio = 4;
 
 	ret = mipi_samsung_device_register(&pinfo, MIPI_DSI_PRIM,
