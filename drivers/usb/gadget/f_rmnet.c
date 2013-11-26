@@ -465,11 +465,9 @@ static void frmnet_suspend(struct usb_function *f)
 {
 	struct f_rmnet *dev = func_to_rmnet(f);
 	unsigned		port_num;
-	unsigned long flags;
-	struct rmnet_ctrl_pkt *cpkt;
 	enum transport_type	dxport = rmnet_ports[dev->port_num].data_xport;
 
-	pr_info("%s: data xport: %s dev: %p portno: %d\n",
+	pr_debug("%s: data xport: %s dev: %p portno: %d\n",
 		__func__, xport_to_str(dxport),
 		dev, dev->port_num);
 
@@ -481,24 +479,6 @@ static void frmnet_suspend(struct usb_function *f)
 		gbam_suspend(&dev->port, port_num, dxport);
 		break;
 	case USB_GADGET_XPORT_HSIC:
-		usb_ep_disable(dev->notify);
-		dev->notify->driver_data = NULL;
-
-		atomic_set(&dev->online, 0);
-
-		spin_lock_irqsave(&dev->lock, flags);
-		while (!list_empty(&dev->cpkt_resp_q)) {
-			cpkt = list_first_entry(&dev->cpkt_resp_q,
-					struct rmnet_ctrl_pkt, list);
-
-			list_del(&cpkt->list);
-			rmnet_free_ctrl_pkt(cpkt);
-		}
-		atomic_set(&dev->notify_count, 0);
-		spin_unlock_irqrestore(&dev->lock, flags);
-
-		gport_rmnet_disconnect(dev);
-
 		break;
 	case USB_GADGET_XPORT_NONE:
 		break;
@@ -514,7 +494,7 @@ static void frmnet_resume(struct usb_function *f)
 	unsigned		port_num;
 	enum transport_type	dxport = rmnet_ports[dev->port_num].data_xport;
 
-	pr_info("%s: data xport: %s dev: %p portno: %d\n",
+	pr_debug("%s: data xport: %s dev: %p portno: %d\n",
 		__func__, xport_to_str(dxport),
 		dev, dev->port_num);
 

@@ -4263,10 +4263,10 @@ static void __init msm8960_gfx_init(void)
 	platform_device_register(&msm_kgsl_3d0);
 
 	
-	//if (!cpu_is_msm8960ab()) {
-	//	platform_device_register(&msm_kgsl_2d0);
-	//	platform_device_register(&msm_kgsl_2d1);
-	//}
+	if (!cpu_is_msm8960ab()) {
+		platform_device_register(&msm_kgsl_2d0);
+		platform_device_register(&msm_kgsl_2d1);
+	}
 }
 
 #ifdef CONFIG_HTC_BATT_8960

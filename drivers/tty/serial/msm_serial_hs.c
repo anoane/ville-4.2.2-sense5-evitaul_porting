@@ -2091,14 +2091,14 @@ static int msm_hs_startup(struct uart_port *uport)
 	spin_lock_irqsave(&uport->lock, flags);
 
 	msm_hs_start_rx_locked(uport);
-
+#if 0
 	data = msm_hs_read(uport, UARTDM_MR2_ADDR);
         data &= ~(UARTDM_MR2_RX_BREAK_ZERO_CHAR_OFF |
                         UARTDM_MR2_RX_ERROR_CHAR_OFF);
 
         msm_hs_write(uport, UARTDM_MR2_ADDR, data);
         mb();
-
+#endif
 	
 	msm_hs_write(uport, UARTDM_CR_ADDR, RFR_LOW);
 	DbgBuffer_printLog("%s: after RFR_LOW\n", __func__);

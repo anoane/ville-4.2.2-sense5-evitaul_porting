@@ -1612,6 +1612,8 @@ void mdp_disable_irq_nosync(uint32 term)
 				__func__, term, mdp_irq_mask, mdp_irq_enabled);
 		printk(KERN_ERR "%s: display_status %lu, mdp_interrupt_status 0x%x,mdp_intr_en 0x%x",
 			__func__, mdp4_display_status(), inp32(MDP_INTR_STATUS), inp32(MDP_INTR_ENABLE));
+		
+		mdp4_sw_reset(0x17);
 	} else {
 		mdp_irq_mask &= ~term;
 		if (!mdp_irq_mask && mdp_irq_enabled) {
@@ -2835,6 +2837,9 @@ static int mdp_probe(struct platform_device *pdev)
 		mfd->ov1_wb_buf->size = 0;
 		mfd->mem_hid = 0;
 	}
+
+	mfd->mem_hid |= BIT(ION_IOMMU_HEAP_ID);
+	mfd->mem_hid &= ~ION_SECURE;
 
 	
 	mdp_hist_lut_init();

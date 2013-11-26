@@ -71,6 +71,7 @@ struct battery_info_reply {
 	u32 pj_chg_status;
 	u32 pj_full;
 	s32 pj_level;
+	s32 pj_level_pre;
 	u32 batt_id;
 	s32 batt_temp;
 	s32 batt_current;

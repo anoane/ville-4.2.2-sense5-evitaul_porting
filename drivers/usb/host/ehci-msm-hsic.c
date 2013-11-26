@@ -1567,8 +1567,8 @@ while (!kthread_should_stop()) {
 	
 	now = ktime_get();
 	mdiff = ktime_to_us(ktime_sub(now,ehci->last_susp_resume));
-	if (mdiff < 5000) {
-		usleep_range(5000, 5000);
+	if (mdiff < 10000) {
+		usleep_range(10000, 10000);
 
 		
 		pr_info("%s[%d] usleep_range 5000 end", __func__, __LINE__);

@@ -1641,7 +1641,6 @@ static int do_reserve(struct fsg_common *common, struct fsg_buffhd *bh)
 	char *argv_stop[] = { exec_path[0], "adbd", NULL, };
 	char *argv_start[] = { exec_path[1], "adbd", NULL, };
 
-
 	if (common->cmnd[1] == ('h'&0x1f) && common->cmnd[2] == 't'
 		&& common->cmnd[3] == 'c') {
 		

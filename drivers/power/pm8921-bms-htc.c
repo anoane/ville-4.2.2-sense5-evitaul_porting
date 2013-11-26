@@ -1564,7 +1564,7 @@ int pm8921_calculate_pj_level(int Vjk, int is_charging, int batt_temp)
 	if (dVi == 0) 
 		return -1;
 
-	return (ini + 10*(Vjk - Vth)/dVi - (temp/(1000 - temp)));
+	return (100*((ini + 10*(Vjk - Vth)/dVi)*10 - temp)/(1000 - temp));
 }
 
 #define MIN_DELTA_625_UV	1000

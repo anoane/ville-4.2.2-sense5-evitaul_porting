@@ -2638,6 +2638,10 @@ static void android_disconnect(struct usb_gadget *gadget)
 
 	
 	is_mtp_enabled = false;
+	if (switch_get_state(&ml_switch)) {
+		switch_set_state(&ml_switch, 0);
+		pr_info("%s:[mirror_link] ml_switch set 0\n", __func__);
+	}
 }
 
 static void android_mute_disconnect(struct usb_gadget *gadget)

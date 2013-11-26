@@ -1273,6 +1273,14 @@ int mipi_dsi_cmds_rx_new(struct dsi_buf *tp, struct dsi_buf *rp,
 	struct dsi_cmd_desc *cmds;
 	int cnt, len, diff, pkt_size;
 	char cmd;
+#ifdef CONFIG_FB_MSM_ESD_WORKAROUND
+	uint32 dsi_ctrl = 0x0;
+
+	if (video_mode) {
+		dsi_ctrl = MIPI_INP(MIPI_DSI_BASE + 0x0000);
+		MIPI_OUTP(MIPI_DSI_BASE + 0x0000, dsi_ctrl | 0x04); 
+	}
+#endif
 
 	if (req->flags & CMD_REQ_NO_MAX_PKT_SIZE) {
 		
@@ -1349,6 +1357,11 @@ int mipi_dsi_cmds_rx_new(struct dsi_buf *tp, struct dsi_buf *rp,
 	default:
 		break;
 	}
+
+#ifdef CONFIG_FB_MSM_ESD_WORKAROUND
+	if (video_mode)
+		MIPI_OUTP(MIPI_DSI_BASE + 0x0000, dsi_ctrl); 
+#endif
 
 	return rp->len;
 }

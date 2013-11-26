@@ -1230,6 +1230,7 @@ composite_unbind(struct usb_gadget *gadget)
 		usb_ep_free_request(gadget->ep0, cdev->req);
 	}
 	device_remove_file(&gadget->dev, &dev_attr_suspended);
+	switch_dev_unregister(&cdev->compositesdev);
 	kfree(cdev);
 	set_gadget_data(gadget, NULL);
 	composite = NULL;

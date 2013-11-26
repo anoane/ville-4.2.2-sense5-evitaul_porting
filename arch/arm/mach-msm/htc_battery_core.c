@@ -784,8 +784,13 @@ static ssize_t htc_battery_show_property(struct device *dev,
 				battery_core_info.rep.pj_src);
 		break;
 	case PJ_STATUS:
+		
 		if (battery_core_info.rep.pj_full == 3)	{
-			i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n", HTC_UI_PJ_FULL);
+			if ((battery_core_info.rep.pj_level - battery_core_info.rep.pj_level_pre) >= 19)
+				BATT_LOG("level diff over 19, level:%d, pre_level:%d\n",
+					battery_core_info.rep.pj_level, battery_core_info.rep.pj_level_pre);
+			else
+				i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n", HTC_UI_PJ_FULL);
 		} else { 
 			if (battery_core_info.rep.pj_chg_status == 2 || battery_core_info.rep.charging_enabled)
 				i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n", HTC_UI_PJ_CHG);

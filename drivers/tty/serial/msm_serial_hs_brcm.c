@@ -2282,10 +2282,13 @@ static void msm_hs_shutdown(struct uart_port *uport)
 			 UART_XMIT_SIZE, DMA_TO_DEVICE);
 
 	
+	mutex_unlock(&msm_uport->clk_mutex);
+
+	
 	free_irq(uport->irq, msm_uport);
 	if (use_low_power_wakeup(msm_uport))
 		free_irq(msm_uport->wakeup.irq, msm_uport);
-	mutex_unlock(&msm_uport->clk_mutex);
+	
 	
 
 	printk(KERN_INFO "[BT]== S DN ==\n");

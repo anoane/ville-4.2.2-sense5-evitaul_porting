@@ -156,7 +156,7 @@ static int cs8427_i2c_sendbytes(struct cs8427 *chip,
 			char *reg_addr, char *data,
 			int bytes)
 {
-	u32 ret = 0;
+	int ret = 0;
 	u8 i = 0;
 
 	if (!chip) {
