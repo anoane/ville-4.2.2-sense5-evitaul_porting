@@ -337,6 +337,7 @@ struct msm_camera_sensor_platform_info {
 	enum sensor_flip_mirror_info mirror_flip;
 	void *privacy_light_info;
 	enum sensor_mount_angle sensor_mount_angle; 
+	bool ews_enable;
 	
 };
 
@@ -448,9 +449,7 @@ struct msm_camera_sensor_info {
 #endif
 	
 	int sensor_cut;
-#ifdef CONFIG_RAWCHIPII
-	int stop_yushanii_first;
-#endif
+
 };
 
 struct msm_camera_board_info {

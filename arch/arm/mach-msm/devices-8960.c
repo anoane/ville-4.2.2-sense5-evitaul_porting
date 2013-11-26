@@ -854,7 +854,7 @@ static struct msm_bus_paths vidc_bus_client_config[] = {
 	},
 	{
 		ARRAY_SIZE(vidc_venc_1080p_turbo_vectors),
-		vidc_vdec_1080p_turbo_vectors,
+		vidc_venc_1080p_turbo_vectors,
 	},
 	{
 		ARRAY_SIZE(vidc_vdec_1080p_turbo_vectors),
@@ -3200,7 +3200,7 @@ static struct resource kgsl_2d0_resources[] = {
 	{
 		.name = KGSL_2D0_REG_MEMORY,
 		.start = 0x04100000, 
-		.end = 0x04100FFF,
+		.end = 0x0411FFFF,
 		.flags = IORESOURCE_MEM,
 	},
 	{
@@ -3280,7 +3280,7 @@ static struct resource kgsl_2d1_resources[] = {
 	{
 		.name = KGSL_2D1_REG_MEMORY,
 		.start = 0x04200000, 
-		.end =   0x04200FFF,
+		.end =   0x0421FFFF,
 		.flags = IORESOURCE_MEM,
 	},
 	{

@@ -814,6 +814,8 @@ int msm_mctl_pp_reserve_free_frame(
 		pr_err("%s Instance already closed ", __func__);
 		return -EINVAL;
 	}
+	pr_err("%s reserving free buf ", __func__);
+	D("%s reserving free buf ", __func__);
 	rc = msm_mctl_reserve_free_buf(p_mctl, pcam_inst,
 					image_mode, &free_buf);
 	if (rc == 0) {
