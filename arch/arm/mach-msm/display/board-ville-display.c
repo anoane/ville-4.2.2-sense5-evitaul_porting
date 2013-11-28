@@ -49,46 +49,46 @@
 
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
 #define MSM_FB_PRIM_BUF_SIZE \
-      (roundup((roundup(960, 32) * roundup(540, 32) * 4), 4096) * 3)
-      
+                (roundup((roundup(1920, 32) * roundup(1200, 32) * 4), 4096) * 3)
+                        /* 4 bpp x 3 pages */
 #else
 #define MSM_FB_PRIM_BUF_SIZE \
-      (roundup((roundup(1920, 32) * roundup(1200, 32) * 4), 4096) * 2)
-      
+                (roundup((roundup(1920, 32) * roundup(1200, 32) * 4), 4096) * 2)
+                        /* 4 bpp x 2 pages */
 #endif
+
+/* Note: must be multiple of 4096 */
 #define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE, 4096)
+
 #ifdef CONFIG_FB_MSM_OVERLAY0_WRITEBACK
 #define MSM_FB_OVERLAY0_WRITEBACK_SIZE \
-      roundup((roundup(960, 32) * roundup(540, 32) * 3 * 2), 4096)
+                roundup((roundup(1920, 32) * roundup(1200, 32) * 3 * 2), 4096)
 #else
 #define MSM_FB_OVERLAY0_WRITEBACK_SIZE (0)
-#endif  
+#endif /* CONFIG_FB_MSM_OVERLAY0_WRITEBACK */
+
 #ifdef CONFIG_FB_MSM_OVERLAY1_WRITEBACK
 #define MSM_FB_OVERLAY1_WRITEBACK_SIZE \
-      roundup((roundup(1920, 32) * roundup(1080, 32) * 3 * 2), 4096)
+                roundup((roundup(1920, 32) * roundup(1080, 32) * 3 * 2), 4096)
 #else
 #define MSM_FB_OVERLAY1_WRITEBACK_SIZE (0)
-#endif  
+#endif /* CONFIG_FB_MSM_OVERLAY1_WRITEBACK */
+
+static void set_mdp_clocks_to_avoid_dsi_underflow(void);
 
 static int ville_detect_panel(const char *name)
 {
 	if (!strncmp(name, HDMI_PANEL_NAME,
 		strnlen(HDMI_PANEL_NAME,
-			PANEL_NAME_MAX_LEN)))
+			PANEL_NAME_MAX_LEN))) {
+		set_mdp_clocks_to_avoid_dsi_underflow();
 		return 0;
+	}
 
 	return -ENODEV;
 }
 
-#ifdef CONFIG_FB_MSM_412
-int mdp_core_clk_rate_table[] = {
-	85330000,
-	96000000,
-	160000000,
-	200000000,
-};
-#endif
-
+#ifdef CONFIG_MSM_BUS_SCALING
 static struct msm_bus_vectors mdp_init_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_MDP_PORT0,
@@ -215,6 +215,7 @@ static struct msm_bus_scale_pdata mdp_bus_scale_pdata = {
 	ARRAY_SIZE(mdp_bus_scale_usecases),
 	.name = "mdp",
 };
+#endif
 
 int ville_mdp_gamma(void)
 {
@@ -230,26 +231,41 @@ int ville_mdp_gamma(void)
 	return 0;
 }
 
+/**
+* Set MDP clocks to high frequency to avoid DSI underflow
+* when using high resolution 1200x1920 WUXGA panels
+*/
+static void set_mdp_clocks_to_avoid_dsi_underflow(void)
+{
+        mdp_ui_vectors[0].ab = 2000000000;
+        mdp_ui_vectors[0].ib = 2000000000;
+        mdp_vga_vectors[0].ab = 2000000000;
+        mdp_vga_vectors[0].ib = 2000000000;
+        mdp_720p_vectors[0].ab = 2000000000;
+        mdp_720p_vectors[0].ib = 2000000000;
+        mdp_1080p_vectors[0].ab = 2000000000;
+        mdp_1080p_vectors[0].ib = 2000000000;
+}
+
 static struct msm_panel_common_pdata mdp_pdata = {
-	.gpio = MDP_VSYNC_GPIO,
-#ifdef CONFIG_FB_MSM_412
-	.mdp_core_clk_rate = 85330000,
-	.mdp_core_clk_table = mdp_core_clk_rate_table,
-	.num_mdp_clk = ARRAY_SIZE(mdp_core_clk_rate_table),
-#endif
+        .gpio = MDP_VSYNC_GPIO,
+        .mdp_max_clk = 200000000,
+        .mdp_max_bw = 2000000000,
+        .mdp_bw_ab_factor = 115,
+        .mdp_bw_ib_factor = 150,
 #ifdef CONFIG_MSM_BUS_SCALING
-	.mdp_bus_scale_table = &mdp_bus_scale_pdata,
+        .mdp_bus_scale_table = &mdp_bus_scale_pdata,
 #endif
-	.mdp_rev = MDP_REV_43,
+        .mdp_rev = MDP_REV_42,
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
-	.mem_hid = BIT(ION_CP_MM_HEAP_ID),
+        .mem_hid = BIT(ION_CP_MM_HEAP_ID),
 #else
-	.mem_hid = MEMTYPE_EBI1,
+        .mem_hid = MEMTYPE_EBI1,
 #endif
-	.mdp_iommu_split_domain = 0,
-	.cont_splash_enabled = 0x00,
-	.mdp_gamma = ville_mdp_gamma,
-	.mdp_max_clk = 200000000,
+        .cont_splash_enabled = 0x00,
+        .splash_screen_addr = 0x00,
+        .splash_screen_size = 0x00,
+        .mdp_iommu_split_domain = 0,
 };
 
 static char wfd_check_mdp_iommu_split_domain(void)
@@ -346,6 +362,15 @@ static struct platform_device msm_fb_device = {
 
 void __init msm8960_init_fb(void)
 {
+	uint32_t soc_platform_version = socinfo_get_version();
+
+
+        if (SOCINFO_VERSION_MAJOR(soc_platform_version) >= 3)
+                mdp_pdata.mdp_rev = MDP_REV_43;
+
+        if (cpu_is_msm8960ab())
+                mdp_pdata.mdp_rev = MDP_REV_44;
+  
 	platform_device_register(&msm_fb_device);
 #ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
 	platform_device_register(&wfd_panel_device);
