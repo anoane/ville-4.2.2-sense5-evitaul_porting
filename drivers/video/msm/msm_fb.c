@@ -57,6 +57,7 @@
 #include "mdp4.h"
 
 #include <mach/debug_display.h>
+#include <mach/panel_id.h>
 
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
 #define MSM_FB_NUM	3
@@ -1457,6 +1458,7 @@ void msm_fb_display_off(struct msm_fb_data_type *mfd)
         }
 }
 
+static bool first_int_display = true;
 static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 			    boolean op_enable)
 {
@@ -1477,6 +1479,14 @@ static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 	case FB_BLANK_UNBLANK:
 		if (!mfd->panel_power_on) {
 			msleep(16);
+			if (first_int_display && panel_type == PANEL_ID_CANIS_LG_NOVATEK) {
+				ret = pdata->on(mfd->pdev);
+				hr_msleep(10);
+				pdata->display_off(mfd);
+				ret = pdata->off(mfd->pdev);
+				hr_msleep(10);
+				first_int_display = false;
+			}
 			ret = pdata->on(mfd->pdev);
 			if (ret == 0) {
 				mfd->panel_power_on = TRUE;
@@ -2410,21 +2420,36 @@ static int msm_fb_pan_display_ex(struct fb_var_screeninfo *var,
 	struct msm_fb_data_type *mfd = (struct msm_fb_data_type *)info->par;
 	struct msm_fb_backup_type *fb_backup;
 	int ret = 0;
+
 	if (bf_supported && info->node == 2) {
 		pr_err("%s: no pan display for fb%d!",
 		       __func__, info->node);
-		return -EPERM;
+		ret = -EPERM;
+		goto do_release_timeline;
 	}
 
 	if (info->node != 0 || mfd->cont_splash_done)	
-		if ((!mfd->op_enable) || (!mfd->panel_power_on))
-			return -EPERM;
+		if ((!mfd->op_enable) || (!mfd->panel_power_on)) {
+			ret = -EPERM;
+			PR_DISP_INFO("%s: mfd->op_enable:%d mfd->panel_power_on:%d\n",
+				__func__, mfd->op_enable, mfd->panel_power_on);
+			goto do_release_timeline;
+		}
 
-	if (var->xoffset > (info->var.xres_virtual - info->var.xres))
-		return -EINVAL;
+	if (var->xoffset > (info->var.xres_virtual - info->var.xres)) {
+		PR_DISP_INFO("%s: var->xoffset:%d info->var.xres_virtual:%d info->var.xres:%d\n",
+			__func__, var->xoffset, info->var.xres_virtual, info->var.xres);
+		ret =  -EINVAL;
+		goto do_release_timeline;
+	}
 
-	if (var->yoffset > (info->var.yres_virtual - info->var.yres))
-		return -EINVAL;
+	if (var->yoffset > (info->var.yres_virtual - info->var.yres)) {
+		PR_DISP_INFO("%s: var->yoffset:%d info->var.yres_virtual:%d info->var.yres:%d\n",
+			__func__, var->yoffset, info->var.yres_virtual, info->var.yres);
+		ret =  -EINVAL;
+		goto do_release_timeline;
+	}
+
 	msm_fb_pan_idle(mfd);
 
 	mutex_lock(&mfd->sync_mutex);
@@ -2446,6 +2471,14 @@ static int msm_fb_pan_display_ex(struct fb_var_screeninfo *var,
 	mutex_unlock(&mfd->sync_mutex);
 	if (wait_for_finish)
 		msm_fb_pan_idle(mfd);
+
+do_release_timeline:
+	if (ret) {
+		PR_DISP_INFO("%s: timeline=%d, ret=%d, do release timeline\n",
+			__func__, mfd->timeline_value, ret);
+		msm_fb_release_timeline(mfd);
+	}
+
 	return ret;
 }
 

@@ -711,6 +711,11 @@ static int msm_mctl_open(struct msm_cam_media_controller *p_mctl,
 
 		if (p_mctl->sdata->use_rawchip) {
 #ifdef CONFIG_RAWCHIP
+			
+			if (sinfo->camera_pre_power_on)
+				sinfo->camera_pre_power_on();
+			
+
 			rc = rawchip_open_init();
 			if (rc < 0) {
 				goto sensor_sdev_failed;
@@ -887,6 +892,11 @@ static int msm_mctl_release(struct msm_cam_media_controller *p_mctl)
 
 	if (p_mctl->sdata->use_rawchip) {
 #ifdef CONFIG_RAWCHIP
+		
+		if (p_mctl->sdata->camera_pre_power_off)
+			p_mctl->sdata->camera_pre_power_off();
+		
+
 		rawchip_release();
 #endif
 	}

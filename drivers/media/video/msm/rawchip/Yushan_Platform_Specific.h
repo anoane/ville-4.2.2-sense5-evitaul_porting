@@ -20,6 +20,7 @@
 #define RAWCHIP_INT_TYPE_PDP_EOF_EXECCMD (0x01<<2)
 #define RAWCHIP_INT_TYPE_DPP_EOF_EXECCMD (0x01<<3)
 #define RAWCHIP_INT_TYPE_DOP_EOF_EXECCMD (0x01<<4)
+#define RAWCHIP_INT_TYPE_DXO_IP_ERROR (0x01<<5)
 
 bool_t Yushan_WaitForInterruptEvent (uint8_t bInterruptId ,uint32_t udwTimeOut);
 bool_t Yushan_WaitForInterruptEvent2 (uint8_t bInterruptId ,uint32_t udwTimeOut);

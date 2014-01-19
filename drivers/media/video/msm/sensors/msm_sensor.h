@@ -206,6 +206,7 @@ struct msm_sensor_fn_t {
 	void(*sensor_yushanII_active_hold)(void);
 	int (*sensor_yushanII_ae_updated)(void);
 	void(*sensor_yushanII_set_default_ae)(struct msm_sensor_ctrl_t *, uint8_t);
+	void (*sensor_read_command_line) (struct msm_sensor_ctrl_t *);	
 };
 
 struct msm_sensor_ctrl_t {
@@ -257,6 +258,7 @@ struct msm_sensor_ctrl_t {
 	uint8_t driver_ic;
 	bool ews_enable;
 	bool actived_ae;        
+	bool boot_mode_normal;        
 };
 
 void msm_sensor_start_stream(struct msm_sensor_ctrl_t *s_ctrl);
@@ -355,6 +357,8 @@ int msm_sensor_enable_debugfs(struct msm_sensor_ctrl_t *s_ctrl);
 
 long msm_sensor_subdev_ioctl(struct v4l2_subdev *sd,
 			unsigned int cmd, void *arg);
+
+void msm_read_command_line(struct msm_sensor_ctrl_t *);
 
 struct msm_sensor_ctrl_t *get_sctrl(struct v4l2_subdev *sd);
 

@@ -218,6 +218,8 @@ int32_t msm_actuator_af_power_down(struct msm_actuator_ctrl_t *a_ctrl)
 {
 	int32_t rc = 0;
 	LINFO("%s called\n", __func__);
+	if (!a_ctrl->step_position_table)
+	    return rc;
 
 	if (a_ctrl->step_position_table[a_ctrl->curr_step_pos] !=
 		a_ctrl->initial_code) {

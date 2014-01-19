@@ -423,8 +423,11 @@ struct msm_camera_sensor_info {
 
 	
 	struct msm_camera_gpio_conf *gpio_conf;
+	int (*camera_pre_power_on)(void);	
+	int (*camera_pre_power_off)(void);	
 	int (*camera_power_on)(void);
 	int (*camera_power_off)(void);
+
 	void (*camera_yushanii_probed)(enum htc_camera_image_type_board);
 	enum htc_camera_image_type_board htc_image;	
 	int use_rawchip;

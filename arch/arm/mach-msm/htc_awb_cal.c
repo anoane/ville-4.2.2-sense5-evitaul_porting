@@ -65,11 +65,11 @@ static int __init parse_tag_cam_awb_cal(const struct tag *tag)
 	unsigned char *dptr = (unsigned char *)(&tag->u);
 	unsigned size;
 
-	size = min((tag->hdr.size - 2) * sizeof(__u32), AWB_CAL_MAX_SIZE);
+	size = min((2050 - 2) * sizeof(__u32), AWB_CAL_MAX_SIZE);
 
 	printk(KERN_INFO "CAM_AWB_CAL Data size = %d , 0x%x, size = %d (%d,%d)\n",
-			tag->hdr.size, tag->hdr.tag, size,
-			((tag->hdr.size - 2) * sizeof(__u32)), (AWB_CAL_MAX_SIZE));
+			2050, tag->hdr.tag, size,
+			((2050 - 2) * sizeof(__u32)), (AWB_CAL_MAX_SIZE));
 
 	gCAM_AWB_CAL_LEN = size;
 	memcpy(cam_awb_ram, dummy(dptr), size); 

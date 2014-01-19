@@ -14,6 +14,8 @@
 #include "msm.h"
 #include "msm_ispif.h"
 #include "msm_camera_i2c_mux.h"
+#include <linux/init.h>
+#include <linux/bootmem.h>
 
 #ifdef CONFIG_RAWCHIP
 #include "rawchip/rawchip.h"
@@ -31,6 +33,7 @@ static struct task_struct *tsk_sensor_init = NULL;
 static int oem_sensor_init(void *arg);
 
 static int first_init;
+extern char *saved_command_line;	
 
 static int oem_sensor_init(void *arg)
 {
@@ -1781,7 +1784,7 @@ int32_t msm_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 	int32_t rc = 0;
 	uint16_t chipid = 0;
 #if defined(CONFIG_MACH_MONARUDO) || defined(CONFIG_MACH_DELUXE_J) || defined(CONFIG_MACH_DELUXE_R) || defined(CONFIG_MACH_IMPRESSION_J)\
-		|| defined(CONFIG_MACH_DUMMY) || defined(CONFIG_MACH_DUMMY) || defined(CONFIG_MACH_DUMMY)
+		|| defined(CONFIG_MACH_DELUXE_U) || defined(CONFIG_MACH_DELUXE_UL) || defined(CONFIG_MACH_DELUXE_UB1)
 	int i=1;
 #else
 	int i=10;
@@ -1829,7 +1832,7 @@ int32_t msm_sensor_match_id(struct msm_sensor_ctrl_t *s_ctrl)
 #endif
 	if (chipid != s_ctrl->sensor_id_info->sensor_id) {
 #if defined(CONFIG_MACH_MONARUDO) || defined(CONFIG_MACH_DELUXE_J) || defined(CONFIG_MACH_DELUXE_R) || defined(CONFIG_MACH_IMPRESSION_J)\
-    || defined(CONFIG_MACH_DUMMY) || defined(CONFIG_MACH_DUMMY)
+    || defined(CONFIG_MACH_DELUXE_U) || defined(CONFIG_MACH_DELUXE_UL)
 		if (chipid == 0x174 && s_ctrl->sensor_id_info->sensor_id == 0x175)
 		{
 			
@@ -1883,6 +1886,11 @@ int32_t msm_sensor_i2c_probe(struct i2c_client *client,
 
 	if (s_ctrl->sensordata->use_rawchip) {
 #ifdef CONFIG_RAWCHIP
+		
+		if (s_ctrl->sensordata->camera_pre_power_on)
+			s_ctrl->sensordata->camera_pre_power_on();
+		
+
 		rc = rawchip_probe_init();
 		if (rc < 0) {
 			msm_camio_probe_on_bootup(s_ctrl);	
@@ -2194,3 +2202,35 @@ void msm_dump_otp_to_file(const char* sensor_name, const short* add, const uint8
     }  
 }  
 
+void msm_read_command_line(struct msm_sensor_ctrl_t *s_ctrl)
+{
+	char *p;
+	size_t cmdline_len;
+	char *smode;
+	size_t sn_len = 0;
+
+	pr_info("%s", __func__);
+
+	cmdline_len = strlen(saved_command_line);
+	p = saved_command_line;
+	for (p = saved_command_line; p < saved_command_line + cmdline_len - strlen("androidboot.serialno="); p++) {
+		if (!strncmp(p, "androidboot.mode=", strlen("androidboot.mode="))) {
+			p += strlen("androidboot.mode=");
+			while (*p != ' '  && *p != '\0') {
+				sn_len++;
+				p++;
+			}
+			p -= sn_len;
+
+			smode = kmalloc(sn_len + 1, GFP_KERNEL);
+			strncpy(smode, p, sn_len);
+
+			if (!strncmp(p, "normal", strlen("normal"))) {
+				s_ctrl->boot_mode_normal = true;
+			}
+
+			smode[sn_len] = '\0';
+			pr_info("%s:smode=%s, boot_mode_normal=%d", __func__, smode, s_ctrl->boot_mode_normal);
+		}
+	}
+}
