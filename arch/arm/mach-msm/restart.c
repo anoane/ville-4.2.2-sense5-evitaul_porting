@@ -28,7 +28,6 @@
 #include <linux/gpio.h>
 #include <linux/console.h>
 
-#include <asm/cacheflush.h>
 #include <asm/mach-types.h>
 
 #include <mach/msm_iomap.h>
@@ -224,23 +223,41 @@ static int notify_efs_sync_set(const char *val, struct kernel_param *kp)
 static int notify_efs_sync_call
 	(struct notifier_block *this, unsigned long code, void *_cmd)
 {
-	switch (code) {
-	case SYS_RESTART:
-	case SYS_POWER_OFF:
-		
-		if (board_mfg_mode() <= MFG_MODE_MINI) {
-			set_modem_efs_sync();
-			check_modem_efs_sync_timeout(10);
-		}
+	unsigned long oem_code = 0;
 
-		break;
+	switch (code) {
+		case SYS_RESTART:
+			if (_cmd && !strncmp(_cmd, "oem-", 4)) {
+				oem_code = simple_strtoul(_cmd + 4, 0, 16) & 0xff;
+			}
+
+			
+			if (board_mfg_mode() <= 2) {
+				
+				if (oem_code != 0x11) {
+					set_modem_efs_sync();
+					check_modem_efs_sync_timeout(10);
+				}
+			}
+			
+
+		case SYS_POWER_OFF:
+			
+			if (notify_efs_sync) {
+				
+				pr_info("%s: userspace initiated efs_sync not finished...\n", __func__);
+				cancel_delayed_work(&checkwork_struct);
+				
+				check_modem_efs_sync_timeout(efs_sync_work_timout - 1);
+			}
+			break;
 	}
 
 	return NOTIFY_DONE;
 }
 
 static struct notifier_block notify_efs_sync_notifier = {
-	.notifier_call = notify_efs_sync_call,
+   .notifier_call = notify_efs_sync_call,
 };
 
 static void __msm_power_off(int lower_pshold)
@@ -325,7 +342,7 @@ void msm_restart(char mode, const char *cmd)
 
 	printk(KERN_NOTICE "[K] Going down for restart now\n");
 
-	printk(KERN_NOTICE "%s: Kernel command line: %s\n", __func__, hashed_command_line);
+	printk(KERN_NOTICE "%s: Kernel command line: %s\n", __func__, saved_command_line);
 
 	pm8xxx_reset_pwr_off(1);
 
@@ -350,8 +367,6 @@ void msm_restart(char mode, const char *cmd)
 		
 		if (mode == RESTART_MODE_MODEM_USER_INVOKED)
 			set_restart_action(RESTART_REASON_REBOOT, NULL);
-		else if (mode == RESTART_MODE_ERASE_EFS)
-			set_restart_action(RESTART_REASON_ERASE_EFS, NULL);
 		else {
 			set_restart_action(RESTART_REASON_RAMDUMP, cmd);
 		}
@@ -361,7 +376,6 @@ void msm_restart(char mode, const char *cmd)
 	}
 
 	msm_flush_console();
-	flush_cache_all();
 
 	__raw_writel(0, msm_tmr0_base + WDT0_EN);
 	if (!(machine_is_msm8x60_fusion() || machine_is_msm8x60_fusn_ffa())) {
@@ -387,10 +401,9 @@ static int __init msm_restart_init(void)
 	int rc;
 
 	htc_restart_handler_init();
-
-	atomic_notifier_chain_register(&panic_notifier_list, &panic_blk);
 	register_reboot_notifier(&notify_efs_sync_notifier);
 
+	atomic_notifier_chain_register(&panic_notifier_list, &panic_blk);
 #ifdef CONFIG_MSM_DLOAD_MODE
 	dload_mode_addr = MSM_IMEM_BASE + DLOAD_MODE_ADDR;
 

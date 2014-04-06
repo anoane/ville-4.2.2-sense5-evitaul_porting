@@ -1880,10 +1880,10 @@ static int mt9v113_vreg_disable(struct platform_device *pdev)
 
 static int mt9v113_probe_init_sensor(const struct msm_camera_sensor_info *data)
 {
-  
+	
 	int rc = 0;
 	uint16_t model_id = 0;
-	
+
 	pr_info("mt9v113_probe_init_sensor\n");
 
 #if 0
@@ -2197,10 +2197,6 @@ int32_t mt9v113_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *arg
 	switch (cfg_data.cfgtype) {
 	case CFG_GET_OUTPUT_INFO:
 		rc = mt9v113_get_output_info(&cfg_data.cfg.output_info);
-		if (copy_to_user((void *)argp,
-			&cfg_data,
-			sizeof(struct sensor_cfg_data)))
-			rc = -EFAULT;
 		break;
 	case CFG_SET_MODE:
 		rc = mt9v113_set_sensor_mode(s_ctrl, cfg_data.mode);
@@ -2300,7 +2296,7 @@ int mt9v113_sensor_release(void)
 		gpio_free(sdata->sensor_reset);
 	}
 
-	msm_camio_clk_disable(sdata,CAMIO_CAM_MCLK_CLK);
+	msm_camio_clk_disable(0,CAMIO_CAM_MCLK_CLK);
 
 	mdelay(2);
 
@@ -2393,7 +2389,7 @@ int32_t mt9v113_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 
 	if (!sdata->use_rawchip) {
 		pr_info("%s MCLK disable clk\n", __func__);
-		msm_camio_clk_disable(sdata,CAMIO_CAM_MCLK_CLK);
+		msm_camio_clk_disable(0,CAMIO_CAM_MCLK_CLK);
 		if (rc < 0)
 			pr_err("%s: msm_camio_sensor_clk_off failed:%d\n",
 				 __func__, rc);

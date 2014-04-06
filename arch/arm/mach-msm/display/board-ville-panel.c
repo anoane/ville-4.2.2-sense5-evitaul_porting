@@ -504,20 +504,10 @@ static inline void ville_mipi_dsi_set_backlight(struct msm_fb_data_type *mfd)
 	else if (panel_type == PANEL_ID_VILLE_SAMSUNG_SG)
 		ville_shrink_pwm(mfd->bl_level);
 
-#if 0
-	if (mdp4_overlay_dsi_state_get() <= ST_DSI_SUSPEND) {
-		mutex_unlock(&mfd->dma->ov_mutex);
-		return;
-	}
-#endif
-
 	if (panel_type == PANEL_ID_VILLE_SAMSUNG_SG || panel_type == PANEL_ID_VILLE_SAMSUNG_SG_C2) {
 		cmdreq.cmds = samsung_cmd_backlight_cmds;
 		cmdreq.cmds_cnt = ARRAY_SIZE(samsung_cmd_backlight_cmds);
 		cmdreq.flags = CMD_REQ_COMMIT;
-		if (mfd && mfd->panel_info.type == MIPI_CMD_PANEL)
-			cmdreq.flags |= CMD_CLK_CTRL;
-	  
 		cmdreq.rlen = 0;
 		cmdreq.cb = NULL;
 		mipi_dsi_cmdlist_put(&cmdreq);
@@ -589,9 +579,6 @@ static void ville_display_on(struct msm_fb_data_type *mfd)
 		cmdreq.cmds_cnt = ARRAY_SIZE(samsung_display_on_cmds);
 	}
 	cmdreq.flags = CMD_REQ_COMMIT;
-	if (mfd && mfd->panel_info.type == MIPI_CMD_PANEL)
-		cmdreq.flags |= CMD_CLK_CTRL;
-	
 	cmdreq.rlen = 0;
 	cmdreq.cb = NULL;
 	mipi_dsi_cmdlist_put(&cmdreq);
@@ -812,7 +799,7 @@ static int mipi_cmd_samsung_blue_qhd_pt_init(void)
 	pinfo.width = 49;
 	pinfo.height = 87;
 	pinfo.camera_backlight = 135;
-	pinfo.mipi.frame_rate = 60;
+	
 	pinfo.lcdc.h_back_porch = 64;
 	pinfo.lcdc.h_front_porch = 96;
 	pinfo.lcdc.h_pulse_width = 32;
@@ -822,28 +809,42 @@ static int mipi_cmd_samsung_blue_qhd_pt_init(void)
 	pinfo.lcd.v_back_porch = 16;
 	pinfo.lcd.v_front_porch = 16;
 	pinfo.lcd.v_pulse_width = 4;
+	pinfo.clk_rate = 482000000;
+
 	pinfo.lcdc.border_clr = 0;	
 	pinfo.lcdc.underflow_clr = 0xff;	
 	pinfo.lcdc.hsync_skew = 0;
 	pinfo.bl_max = 255;
 	pinfo.bl_min = 1;
 	pinfo.fb_num = 2;
-	pinfo.clk_rate = 482000000;
+
 	pinfo.lcd.vsync_enable = TRUE;
 	pinfo.lcd.hw_vsync_mode = TRUE;
 	pinfo.lcd.refx100 = 5700; 
 	pinfo.read_pointer = 275;
+
 	pinfo.mipi.mode = DSI_CMD_MODE;
+	pinfo.mipi.pulse_mode_hsa_he = FALSE;
+	pinfo.mipi.hfp_power_stop = FALSE;
+	pinfo.mipi.hbp_power_stop = FALSE;
+	pinfo.mipi.hsa_power_stop = FALSE;
+	pinfo.mipi.eof_bllp_power_stop = TRUE;
+	pinfo.mipi.bllp_power_stop = TRUE;
+	pinfo.mipi.traffic_mode = DSI_BURST_MODE;
 	pinfo.mipi.dst_format = DSI_CMD_DST_FORMAT_RGB888;
 	pinfo.mipi.vc = 0;
 	pinfo.mipi.rgb_swap = DSI_RGB_SWAP_RGB;
 	pinfo.mipi.data_lane0 = TRUE;
 	pinfo.mipi.data_lane1 = TRUE;
+
+	pinfo.mipi.tx_eot_append = TRUE;
 	pinfo.mipi.t_clk_post = 0x0a;
 	pinfo.mipi.t_clk_pre = 0x20;
-	pinfo.mipi.stream = 0;	
+	pinfo.mipi.stream = 0;
 	pinfo.mipi.mdp_trigger = DSI_CMD_TRIGGER_NONE;
 	pinfo.mipi.dma_trigger = DSI_CMD_TRIGGER_SW;
+	pinfo.mipi.frame_rate = 60;
+
 	pinfo.mipi.te_sel = 1; 
 	pinfo.mipi.interleave_max = 1;
 	pinfo.mipi.insert_dcs_cmd = TRUE;

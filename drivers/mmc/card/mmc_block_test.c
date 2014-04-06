@@ -104,11 +104,6 @@ struct mmc_block_test_data {
 	int num_requests;
 	
 	struct mmc_wr_pack_stats exp_packed_stats;
-	/*
-	 * A user-defined seed for random choices of number of bios written in
-	 * a request, and of number of requests issued in a test
-	 * This field is randomly updated after each use
-	 */
 	unsigned int random_test_seed;
 	
 	int err_check_counter;

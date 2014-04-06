@@ -32,6 +32,31 @@
 #include "../board-8960.h"
 #include "../board-ville.h"
 
+#define RESOLUTION_WIDTH 544
+#define RESOLUTION_HEIGHT 960
+
+#ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
+#define MSM_FB_PRIM_BUF_SIZE \
+		(roundup((RESOLUTION_WIDTH * RESOLUTION_HEIGHT * 4), 4096) * 3) 
+#else
+#define MSM_FB_PRIM_BUF_SIZE \
+		(roundup((RESOLUTION_WIDTH * RESOLUTION_HEIGHT * 4), 4096) * 2) 
+#endif
+
+#define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE, 4096)
+
+#ifdef CONFIG_FB_MSM_OVERLAY0_WRITEBACK
+#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((1376 * 768 * 3 * 2), 4096)
+#else
+#define MSM_FB_OVERLAY0_WRITEBACK_SIZE (0)
+#endif  
+
+#ifdef CONFIG_FB_MSM_OVERLAY1_WRITEBACK
+#define MSM_FB_OVERLAY1_WRITEBACK_SIZE roundup((1920 * 1088 * 3 * 2), 4096)
+#else
+#define MSM_FB_OVERLAY1_WRITEBACK_SIZE (0)
+#endif  
+
 #define MDP_VSYNC_GPIO 0
 
 #define MIPI_CMD_NOVATEK_QHD_PANEL_NAME        "mipi_cmd_novatek_qhd"
@@ -43,52 +68,53 @@
 #define MIPI_VIDEO_SIMULATOR_VGA_PANEL_NAME    "mipi_video_simulator_vga"
 #define MIPI_CMD_RENESAS_FWVGA_PANEL_NAME      "mipi_cmd_renesas_fwvga"
 #define MIPI_VIDEO_ORISE_720P_PANEL_NAME       "mipi_video_orise_720p"
-#define MIPI_CMD_ORISE_720P_PANEL_NAME       "mipi_cmd_orise_720p"
+#define MIPI_CMD_ORISE_720P_PANEL_NAME         "mipi_cmd_orise_720p"
 #define HDMI_PANEL_NAME        "hdmi_msm"
 #define TVOUT_PANEL_NAME       "tvout_msm"
 
-#ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
-#define MSM_FB_PRIM_BUF_SIZE \
-                (roundup((roundup(1920, 32) * roundup(1200, 32) * 4), 4096) * 3)
-                        /* 4 bpp x 3 pages */
-#else
-#define MSM_FB_PRIM_BUF_SIZE \
-                (roundup((roundup(1920, 32) * roundup(1200, 32) * 4), 4096) * 2)
-                        /* 4 bpp x 2 pages */
-#endif
-
-/* Note: must be multiple of 4096 */
-#define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE, 4096)
-
-#ifdef CONFIG_FB_MSM_OVERLAY0_WRITEBACK
-#define MSM_FB_OVERLAY0_WRITEBACK_SIZE \
-                roundup((roundup(1920, 32) * roundup(1200, 32) * 3 * 2), 4096)
-#else
-#define MSM_FB_OVERLAY0_WRITEBACK_SIZE (0)
-#endif /* CONFIG_FB_MSM_OVERLAY0_WRITEBACK */
-
-#ifdef CONFIG_FB_MSM_OVERLAY1_WRITEBACK
-#define MSM_FB_OVERLAY1_WRITEBACK_SIZE \
-                roundup((roundup(1920, 32) * roundup(1080, 32) * 3 * 2), 4096)
-#else
-#define MSM_FB_OVERLAY1_WRITEBACK_SIZE (0)
-#endif /* CONFIG_FB_MSM_OVERLAY1_WRITEBACK */
-
-static void set_mdp_clocks_to_avoid_dsi_underflow(void);
+static struct resource msm_fb_resources[] = {
+	{
+		.flags = IORESOURCE_DMA,
+	}
+};
 
 static int ville_detect_panel(const char *name)
 {
 	if (!strncmp(name, HDMI_PANEL_NAME,
 		strnlen(HDMI_PANEL_NAME,
-			PANEL_NAME_MAX_LEN))) {
-		set_mdp_clocks_to_avoid_dsi_underflow();
+			PANEL_NAME_MAX_LEN)))
 		return 0;
-	}
 
 	return -ENODEV;
 }
 
+static struct msm_fb_platform_data msm_fb_pdata = {
+	.detect_client = ville_detect_panel,
+};
+
+static struct platform_device msm_fb_device = {
+	.name   = "msm_fb",
+	.id     = 0,
+	.num_resources     = ARRAY_SIZE(msm_fb_resources),
+	.resource          = msm_fb_resources,
+	.dev.platform_data = &msm_fb_pdata,
+};
+
+void __init ville_allocate_fb_regions(void)
+{
+	void *addr;
+	unsigned long size;
+
+	size = MSM_FB_SIZE;
+	addr = alloc_bootmem_align(size, 0x1000);
+	msm_fb_resources[0].start = __pa(addr);
+	msm_fb_resources[0].end = msm_fb_resources[0].start + size - 1;
+	pr_info("allocating %lu bytes at %p (%lx physical) for fb\n",
+		size, addr, __pa(addr));
+}
+
 #ifdef CONFIG_MSM_BUS_SCALING
+
 static struct msm_bus_vectors mdp_init_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_MDP_PORT0,
@@ -98,6 +124,43 @@ static struct msm_bus_vectors mdp_init_vectors[] = {
 	},
 };
 
+#ifdef CONFIG_FB_MSM_HDMI_AS_PRIMARY
+static struct msm_bus_vectors hdmi_as_primary_vectors[] = {
+	
+	{
+		.src = MSM_BUS_MASTER_MDP_PORT0,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab = 2000000000,
+		.ib = 2000000000,
+	},
+};
+static struct msm_bus_paths mdp_bus_scale_usecases[] = {
+	{
+		ARRAY_SIZE(mdp_init_vectors),
+		mdp_init_vectors,
+	},
+	{
+		ARRAY_SIZE(hdmi_as_primary_vectors),
+		hdmi_as_primary_vectors,
+	},
+	{
+		ARRAY_SIZE(hdmi_as_primary_vectors),
+		hdmi_as_primary_vectors,
+	},
+	{
+		ARRAY_SIZE(hdmi_as_primary_vectors),
+		hdmi_as_primary_vectors,
+	},
+	{
+		ARRAY_SIZE(hdmi_as_primary_vectors),
+		hdmi_as_primary_vectors,
+	},
+	{
+		ARRAY_SIZE(hdmi_as_primary_vectors),
+		hdmi_as_primary_vectors,
+	},
+};
+#else
 static struct msm_bus_vectors mdp_ui_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_MDP_PORT0,
@@ -137,40 +200,6 @@ static struct msm_bus_vectors mdp_1080p_vectors[] = {
 	},
 };
 
-#if 1
-static struct msm_bus_vectors mdp_composition_1_vectors[] = {
-	
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 1280 * 736 * 4 * 60 * 2,
-		.ib = 1280 * 736 * 4 * 60 * 2 * 1.5,
-	},
-};
-
-static struct msm_bus_vectors mdp_composition_2_vectors[] = {
-	
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 1280 * 736 * 4 * 60 * 3,
-		.ib = 1280 * 736 * 4 * 60 * 3 * 1.5,
-	},
-};
-
-
-static struct msm_bus_vectors mdp_composition_3_vectors[] = {
-	
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 1280 * 736 * 4 * 60 * 4,
-		.ib = 1280 * 736 * 4 * 60 * 4 * 1.5,
-	},
-};
-#endif
-
-
 static struct msm_bus_paths mdp_bus_scale_usecases[] = {
 	{
 		ARRAY_SIZE(mdp_init_vectors),
@@ -196,100 +225,33 @@ static struct msm_bus_paths mdp_bus_scale_usecases[] = {
 		ARRAY_SIZE(mdp_1080p_vectors),
 		mdp_1080p_vectors,
 	},
-	{
-		ARRAY_SIZE(mdp_composition_1_vectors),
-		mdp_composition_1_vectors,
-	},
-	{
-		ARRAY_SIZE(mdp_composition_2_vectors),
-		mdp_composition_2_vectors,
-	},
-	{
-		ARRAY_SIZE(mdp_composition_3_vectors),
-		mdp_composition_3_vectors,
-	},
 };
+#endif
 
 static struct msm_bus_scale_pdata mdp_bus_scale_pdata = {
 	mdp_bus_scale_usecases,
 	ARRAY_SIZE(mdp_bus_scale_usecases),
 	.name = "mdp",
 };
+
 #endif
-
-int ville_mdp_gamma(void)
-{
-	#if 0
-	
-	if (panel_type == PANEL_ID_VILLE_SONY_NT
-			|| panel_type == PANEL_ID_VILLE_SONY_NT_C1
-			|| panel_type == PANEL_ID_VILLE_SONY_NT_C2) {
-		
-		mdp_color_enhancement(ville_sony_nt_gamma, ARRAY_SIZE(ville_sony_nt_gamma));
-	}
-	#endif
-	return 0;
-}
-
-/**
-* Set MDP clocks to high frequency to avoid DSI underflow
-* when using high resolution 1200x1920 WUXGA panels
-*/
-static void set_mdp_clocks_to_avoid_dsi_underflow(void)
-{
-        mdp_ui_vectors[0].ab = 2000000000;
-        mdp_ui_vectors[0].ib = 2000000000;
-        mdp_vga_vectors[0].ab = 2000000000;
-        mdp_vga_vectors[0].ib = 2000000000;
-        mdp_720p_vectors[0].ab = 2000000000;
-        mdp_720p_vectors[0].ib = 2000000000;
-        mdp_1080p_vectors[0].ab = 2000000000;
-        mdp_1080p_vectors[0].ib = 2000000000;
-}
 
 static struct msm_panel_common_pdata mdp_pdata = {
-        .gpio = MDP_VSYNC_GPIO,
-        .mdp_max_clk = 200000000,
-        .mdp_max_bw = 2000000000,
-        .mdp_bw_ab_factor = 115,
-        .mdp_bw_ib_factor = 150,
+	.gpio = MDP_VSYNC_GPIO,
+	.mdp_max_clk = 200000000,
 #ifdef CONFIG_MSM_BUS_SCALING
-        .mdp_bus_scale_table = &mdp_bus_scale_pdata,
+	.mdp_bus_scale_table = &mdp_bus_scale_pdata,
 #endif
-        .mdp_rev = MDP_REV_42,
+	.mdp_rev = MDP_REV_42,
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
-        .mem_hid = BIT(ION_CP_MM_HEAP_ID),
+	.mem_hid = BIT(ION_CP_MM_HEAP_ID),
 #else
-        .mem_hid = MEMTYPE_EBI1,
+	.mem_hid = MEMTYPE_EBI1,
 #endif
-        .cont_splash_enabled = 0x00,
-        .splash_screen_addr = 0x00,
-        .splash_screen_size = 0x00,
-        .mdp_iommu_split_domain = 0,
+	.mdp_iommu_split_domain = 0,
+	
+	.cont_splash_enabled = 0x00,
 };
-
-static char wfd_check_mdp_iommu_split_domain(void)
-{
-    return mdp_pdata.mdp_iommu_split_domain;
-}
-
-#ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
-static struct msm_wfd_platform_data wfd_pdata = {
-    .wfd_check_mdp_iommu_split = wfd_check_mdp_iommu_split_domain,
-};
-
-static struct platform_device wfd_panel_device = {
-    .name = "wfd_panel",
-    .id = 0,
-    .dev.platform_data = NULL,
-};
-
-static struct platform_device wfd_device = {
-    .name          = "msm_wfd",
-    .id            = -1,
-    .dev.platform_data = &wfd_pdata,
-};
-#endif
 
 void __init msm8960_mdp_writeback(struct memtype_reserve* reserve_table)
 {
@@ -303,101 +265,25 @@ void __init msm8960_mdp_writeback(struct memtype_reserve* reserve_table)
 #endif
 }
 
-#ifdef CONFIG_MSM_BUS_SCALING
-static struct msm_bus_vectors dtv_bus_init_vectors[] = {
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 0,
-		.ib = 0,
-	},
-};
-static struct msm_bus_vectors dtv_bus_def_vectors[] = {
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 566092800 * 2,
-		.ib = 707616000 * 2,
-	},
-};
-static struct msm_bus_paths dtv_bus_scale_usecases[] = {
-	{
-		ARRAY_SIZE(dtv_bus_init_vectors),
-		dtv_bus_init_vectors,
-	},
-	{
-		ARRAY_SIZE(dtv_bus_def_vectors),
-		dtv_bus_def_vectors,
-	},
-};
-static struct msm_bus_scale_pdata dtv_bus_scale_pdata = {
-	dtv_bus_scale_usecases,
-	ARRAY_SIZE(dtv_bus_scale_usecases),
-	.name = "dtv",
+static struct mipi_dsi_panel_platform_data ville_pdata = {
+	.dlane_swap = 0,
 };
 
-static struct lcdc_platform_data dtv_pdata = {
-	.bus_scale_table = &dtv_bus_scale_pdata,
-};
-
-#endif
-
-static struct resource msm_fb_resources[] = {
-	{
-		.flags = IORESOURCE_DMA,
+static struct platform_device mipi_dsi_ville_panel_device = {
+	.name = "mipi_ville",
+	.id = 0,
+	.dev = {
+		.platform_data = &ville_pdata,
 	}
-};
-
-static struct msm_fb_platform_data msm_fb_pdata = {
-	.detect_client = ville_detect_panel,
-};
-
-static struct platform_device msm_fb_device = {
-	.name   = "msm_fb",
-	.id     = 0,
-	.num_resources     = ARRAY_SIZE(msm_fb_resources),
-	.resource          = msm_fb_resources,
-	.dev.platform_data = &msm_fb_pdata,
 };
 
 void __init msm8960_init_fb(void)
 {
-	uint32_t soc_platform_version = socinfo_get_version();
+  	platform_device_register(&msm_fb_device);
 
-
-        if (SOCINFO_VERSION_MAJOR(soc_platform_version) >= 3)
-                mdp_pdata.mdp_rev = MDP_REV_43;
-
-        if (cpu_is_msm8960ab())
-                mdp_pdata.mdp_rev = MDP_REV_44;
-  
-	platform_device_register(&msm_fb_device);
-#ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
-	platform_device_register(&wfd_panel_device);
-	platform_device_register(&wfd_device);
-#endif
-
-	if (machine_is_msm8x60_rumi3()) {
-		msm_fb_register_device("mdp", NULL);
-		
-	} else
+	if(panel_type != PANEL_ID_NONE) {
+		platform_device_register(&mipi_dsi_ville_panel_device);
 		msm_fb_register_device("mdp", &mdp_pdata);
-
-#ifdef CONFIG_MSM_BUS_SCALING
-	msm_fb_register_device("dtv", &dtv_pdata);
-#endif
-}
-
-void __init ville_allocate_fb_regions(void)
-{
-	void *addr;
-	unsigned long size;
-
-	size = MSM_FB_SIZE;
-	addr = alloc_bootmem_align(size, 0x1000);
-	msm_fb_resources[0].start = __pa(addr);
-	msm_fb_resources[0].end = msm_fb_resources[0].start + size - 1;
-	pr_info("allocating %lu bytes at %p (%lx physical) for fb\n",
-		size, addr, __pa(addr));
+	}
 }
 

@@ -262,12 +262,10 @@ static unsigned int sdc1_sup_clk_rates[] = {
 	400000, 24000000, 48000000, 96000000
 };
 
-#if 0
 #ifdef CONFIG_MMC_MSM_SDC3_SUPPORT
 static unsigned int sdc3_sup_clk_rates[] = {
 	400000, 24000000, 48000000, 96000000, 192000000
 };
-#endif
 #endif
 
 #ifdef CONFIG_MMC_MSM_SDC1_SUPPORT
@@ -312,7 +310,6 @@ static struct mmc_platform_data msm8960_sdc2_data = {
 };
 #endif
 
-#if 0
 #ifdef CONFIG_MMC_MSM_SDC3_SUPPORT
 static struct mmc_platform_data msm8960_sdc3_data = {
 	.ocr_mask       = MMC_VDD_27_28 | MMC_VDD_28_29,
@@ -338,7 +335,6 @@ static struct mmc_platform_data msm8960_sdc3_data = {
 	.mpm_sdiowakeup_int = MSM_MPM_PIN_SDC3_DAT1,
 	.msm_bus_voting_data = &sps_to_ddr_bus_voting_data,
 };
-#endif
 #endif
 
 #ifdef CONFIG_MMC_MSM_SDC4_SUPPORT
@@ -369,11 +365,9 @@ void __init msm8960_init_mmc(void)
 	
 	msm_add_sdcc(2, &msm8960_sdc2_data);
 #endif
-#if 0
 #ifdef CONFIG_MMC_MSM_SDC3_SUPPORT
 	
 	msm_add_sdcc(3, &msm8960_sdc3_data);
-#endif
 #endif
 #ifdef CONFIG_MMC_MSM_SDC4_SUPPORT
 	

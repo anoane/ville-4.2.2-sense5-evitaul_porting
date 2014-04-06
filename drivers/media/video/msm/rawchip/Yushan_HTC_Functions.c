@@ -714,9 +714,9 @@ int Yushan_sensor_open_init(struct rawchip_sensor_init_data data)
     defined(CONFIG_MACH_DELUXE_J) ||\
     defined(CONFIG_MACH_DELUXE_R) ||\
     defined(CONFIG_MACH_IMPRESSION_J) ||\
-    defined(CONFIG_MACH_DUMMY) ||\
-    defined(CONFIG_MACH_DUMMY) ||\
-    defined(CONFIG_MACH_DUMMY)
+    defined(CONFIG_MACH_DELUXE_U) ||\
+    defined(CONFIG_MACH_DELUXE_UL) ||\
+    defined(CONFIG_MACH_DELUXE_UB1)
 		bDppMode =0; 
 #endif
 		bDopMode =0xd;

@@ -242,11 +242,12 @@ int flashlight_control(int mode)
 #endif
 }
 
-
+#ifdef CONFIG_S5K3H2YX
 static struct msm_camera_sensor_flash_src msm_flash_src = {
 	.flash_sr_type = MSM_CAMERA_FLASH_SRC_CURRENT_DRIVER,
 	.camera_flash = flashlight_control,
 };
+# endif
 #endif  
 #ifdef CONFIG_RAWCHIP
 static int ville_use_ext_1v2(void)

@@ -38,16 +38,12 @@
 #endif
 
 int debug_flag;
-
-
 #define D(x...) printk(KERN_DEBUG "[GYRO][PANASONIC] " x)
 #define I(x...) printk(KERN_INFO "[GYRO][PANASONIC] " x)
 #define E(x...) printk(KERN_ERR "[GYRO][PANASONIC ERROR] " x)
-#define W(x...) printk(KERN_WARNING "[GYRO][PANASONIC WARN] " x)
 #define DIF(x...) { \
 	if (debug_flag) \
 		printk(KERN_DEBUG "[GYRO][PANASONIC DEBUG] " x); }
-#define NACK_LIMIT 10
 
 #define EWTZMU_DRV_NAME         "ewtzmu2"
 #define DRIVER_VERSION          "1.0.0.2"
@@ -101,9 +97,6 @@ struct _ewtzmumid_data {
 	struct device *gyro_dev;
 	void (*config_gyro_diag_gpios)(bool enable);
 	int sleep_pin;
-#ifdef FORCE_POWER_OFF
-	int (*power_off)(int enable);
-#endif
 } ewtzmumid_data;
 
 struct ewtzmu_i2c_data {
@@ -256,7 +249,6 @@ static int EWTZMU2_Chipset_Init(void)
 		goto exit_EWTZMU2_Chipset_Init;
 
 	I("init chipset: ret value=%d\n", res);
-	Gyro_init_fail = 0;
 exit_EWTZMU2_Chipset_Init:
 	if (res <= 0) {
 	E("Fail to init chipset(I2C error): ret value=%d\n", res);
@@ -395,7 +387,6 @@ exit_EWTZMU2_ReadSensorData:
 	return res;
 }
 
-static int NACK_count;
 
 static int EWTZMU2_ReadSensorDataFIFO(unsigned char *buf, int bufsize)
 {
@@ -403,9 +394,6 @@ static int EWTZMU2_ReadSensorDataFIFO(unsigned char *buf, int bufsize)
 	int mode = 0;
 	unsigned char databuf[200];
 	int res = EW_DRV_SUCCESS, databyte = 6;
-
-	if (NACK_count >= NACK_LIMIT)
-		return EW_CLIENT_ERROR;
 
 	if ((!buf) || (bufsize < 121))
 		return EW_BUFFER_PARAMS;
@@ -443,9 +431,7 @@ static int EWTZMU2_ReadSensorDataFIFO(unsigned char *buf, int bufsize)
 		goto exit_EWTZMU2_ReadSensorDataFIFO;
 exit_EWTZMU2_ReadSensorDataFIFO:
 	if (res <= 0) {
-		E("%s: Fail to read sensor data(I2C error): ret value=%d\n", __func__, res);
-		if ((++NACK_count) == NACK_LIMIT)
-			W("%s: NACK_count = %d\n", __func__, NACK_count);
+	E("Fail to read sensor data(I2C error): ret value=%d\n", res);
 		res = EW_I2C_ERROR;
 	} else {
 		memcpy(&(buf[1]), databuf, databyte);
@@ -799,9 +785,6 @@ static int EWTZMU2_Power_Off(void)
 		msleep(10);
 	}
 	gpio_set_value(ewtzmumid_data.sleep_pin, 1);
-
-	NACK_count = 0;
-
 	I("%s\n", __func__);
 	return 0;
 }
@@ -2402,13 +2385,6 @@ static ssize_t pana_gyro_store(struct device *dev,
 		ewtzmumid_data.controldata[EW_CB_ALGORITHMLOG] = 0;
 		debug_flag = 0;
 	}
-#ifdef FORCE_POWER_OFF
-	if (ewtzmumid_data.power_off != NULL) {
-		ewtzmumid_data.power_off(pana_gyro_enable);
-		I("%s: Turn power on purpose: pana_gyro_enable = %d\n",
-			__func__, pana_gyro_enable);
-	}
-#endif
 	D("%s: pana_gyro_enable  = %d\n", __func__, pana_gyro_enable);
 
 	return count;
@@ -2527,15 +2503,7 @@ const struct i2c_device_id *id)
 	EWTZMU2_Power_Off();
 
 	init_waitqueue_head(&open_wq);
-
-	NACK_count = 0;
-
-#ifdef FORCE_POWER_OFF
-	if (data->pdata->power_off != NULL)
-		ewtzmumid_data.power_off = data->pdata->power_off;
-#endif
-
-	I("PANA:GYRO: NACK workaround probe success\n");
+     I("PANA:GYRO:probe success\n");
 
     return 0;
 exit_sysfs_create_group_failed:
