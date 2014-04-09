@@ -257,11 +257,13 @@ static int rawchip_get_interrupt(struct rawchip_ctrl *raw_dev, void __user *arg)
 		atomic_set(&rawchipCtrl->check_intr1, 0);
 	}
 	interrupt_type = interrupt0_type | interrupt1_type;
+
 	if (interrupt_type & RAWCHIP_INT_TYPE_ERROR) {
 		rawchipCtrl->total_error_interrupt_times++;
 		if (rawchipCtrl->total_error_interrupt_times <= 10 || rawchipCtrl->total_error_interrupt_times % 1000 == 0) {
 			Yushan_Status_Snapshot();
-			Yushan_dump_Dxo();
+			if (!(interrupt_type & RAWCHIP_INT_TYPE_DXO_IP_ERROR))
+				Yushan_dump_Dxo();
 		}
 	}
 	se.type = 10;
@@ -443,7 +445,10 @@ static int rawchip_update_aec_awb_params(struct rawchip_ctrl *raw_dev, void __us
 	CDBG("%s rg_ratio=%d bg_ratio=%d\n", __func__,
 		update_aec_awb_params->awb_params.rg_ratio, update_aec_awb_params->awb_params.bg_ratio);
 
-	Yushan_Update_AEC_AWB_Params(update_aec_awb_params);
+	if (update_aec_awb_params->init == TRUE)
+	  Yushan_Set_AEC_AWB_Init_Setting(update_aec_awb_params);
+	else
+	  Yushan_Update_AEC_AWB_Params(update_aec_awb_params);
 
 	kfree(update_aec_awb_params);
 	return 0;

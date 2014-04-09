@@ -58,6 +58,7 @@ static struct msm_bus_vectors cam_init_vectors[] = {
 	},
 };
 
+
 static struct msm_bus_vectors cam_preview_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_VFE,
@@ -83,20 +84,20 @@ static struct msm_bus_vectors cam_video_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_VFE,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 342150912,
-		.ib  = 1361968128,
+		.ab  = 483063040,
+		.ib  = 1832252160,
 	},
 	{
 		.src = MSM_BUS_MASTER_VPE,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 207747072,
-		.ib  = 489756672,
+		.ab  = 206807040,
+		.ib  = 488816640,
 	},
 	{
 		.src = MSM_BUS_MASTER_JPEG_ENC,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 60318720,
-		.ib  = 150796800,
+		.ab  = 0,
+		.ib  = 0,
 	},
 };
 
@@ -104,8 +105,8 @@ static struct msm_bus_vectors cam_snapshot_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_VFE,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 147045888,
-		.ib  = 588183552,
+		.ab  = 274423680,
+		.ib  = 1097694720,
 	},
 	{
 		.src = MSM_BUS_MASTER_VPE,
@@ -116,8 +117,8 @@ static struct msm_bus_vectors cam_snapshot_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_JPEG_ENC,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 263678976,
-		.ib  = 659197440,
+		.ab  = 540000000,
+		.ib  = 1350000000,
 	},
 };
 
@@ -125,8 +126,8 @@ static struct msm_bus_vectors cam_zsl_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_VFE,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 319044096,
-		.ib  = 1271531520,
+		.ab  = 700000000,
+		.ib  = 3749488640U,
 	},
 	{
 		.src = MSM_BUS_MASTER_VPE,
@@ -137,8 +138,8 @@ static struct msm_bus_vectors cam_zsl_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_JPEG_ENC,
 		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab  = 239708160,
-		.ib  = 599270400,
+		.ab  = 200000000,
+		.ib  = 1351296000,
 	},
 };
 
@@ -207,47 +208,17 @@ struct msm_camera_device_platform_data msm_camera_csi_device_data[] = {
 int flashlight_control(int mode)
 {
 #ifdef CONFIG_FLASHLIGHT_TPS61310
-	int	rc;
-	static int brightness = 255;
-	static int backlight_off = 0;
-
-	pr_info("[CAM] %s, linear led, mode %d backlight_off %d", __func__, mode, backlight_off);
-
-	if (mode != FL_MODE_PRE_FLASH && mode != FL_MODE_OFF) {
-		if (!backlight_off) {
-			
-			brightness = led_brightness_value_get("lcd-backlight");
-			if (brightness >= 0 && brightness <= 255) {
-				pr_info("[CAM] %s, Turn off backlight before flashlight, brightness %d", __func__, brightness);
-				led_brightness_value_set("lcd-backlight", 0);
-				backlight_off = 1;
-			} else
-				pr_err("[CAM] %s, Invalid brightness value!! brightness %d", __func__, brightness);
-		}
-	}
-
-	rc = tps61310_flashlight_control(mode);
-
-	if (mode == FL_MODE_PRE_FLASH || mode == FL_MODE_OFF) {
-		if(backlight_off) {
-			pr_info("[CAM] %s, Turn on backlight after flashlight, brightness %d", __func__, brightness);
-			led_brightness_value_set("lcd-backlight", brightness);
-			backlight_off = 0;
-		}
-	}
-
-	return rc;
+	return tps61310_flashlight_control(mode);
 #else
 	return 0;
 #endif
 }
 
-#ifdef CONFIG_S5K3H2YX
+
 static struct msm_camera_sensor_flash_src msm_flash_src = {
 	.flash_sr_type = MSM_CAMERA_FLASH_SRC_CURRENT_DRIVER,
 	.camera_flash = flashlight_control,
 };
-# endif
 #endif  
 #ifdef CONFIG_RAWCHIP
 static int ville_use_ext_1v2(void)

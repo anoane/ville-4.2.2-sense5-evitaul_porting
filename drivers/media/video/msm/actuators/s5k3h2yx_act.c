@@ -293,6 +293,12 @@ static int32_t s5k3h2yx_act_init_focus(struct msm_actuator_ctrl_t *a_ctrl)
 	return rc;
 }
 
+int32_t s5k3h2yx_act_set_af_value(struct msm_actuator_ctrl_t *a_ctrl, af_value_t af_value)
+{
+	return 0;
+}
+
+
 static const struct i2c_device_id s5k3h2yx_act_i2c_id[] = {
 	{"s5k3h2yx_act", (kernel_ulong_t)&s5k3h2yx_act_t},
 	{ }
@@ -406,6 +412,7 @@ static struct msm_actuator_ctrl_t s5k3h2yx_act_t = {
 		.actuator_set_default_focus = msm_actuator_set_default_focus,
 		.actuator_init_focus = s5k3h2yx_act_init_focus,
 		.actuator_i2c_write = s5k3h2yx_wrapper_i2c_write,
+		.actuator_set_af_value = s5k3h2yx_act_set_af_value,
 	},
 
 	.get_info = {	
