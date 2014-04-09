@@ -15,7 +15,9 @@
 
 #include <mach/irqs.h>
 #include <mach/rpm-regulator.h>
+#include <mach/msm_memtypes.h>
 #include <linux/mfd/pm8xxx/pm8921.h>
+#include <linux/regulator/msm-gpio-regulator.h>
 
 #define PM8921_GPIO_BASE		NR_GPIO_IRQS
 #define PM8921_GPIO_PM_TO_SYS(pm_gpio)	(pm_gpio - 1 + PM8921_GPIO_BASE)
@@ -270,6 +272,7 @@ extern struct rpm_regulator_platform_data msm_rpm_regulator_pdata __devinitdata;
 
 void msm8960_init_fb(void);
 void ville_allocate_fb_regions(void);
+void msm8960_mdp_writeback(struct memtype_reserve *reserve_table);
 void msm8960_init_mmc(void);
 
 int __init ville_init_keypad(void);
