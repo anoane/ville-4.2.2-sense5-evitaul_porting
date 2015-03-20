@@ -27,7 +27,7 @@
 #include <linux/spi/spi.h>
 #include <linux/dma-mapping.h>
 #include <linux/platform_data/qcom_crypto_device.h>
-#include <linux/ion.h>
+#include <linux/msm_ion.h>
 #include <linux/memory.h>
 #include <linux/memblock.h>
 #include <linux/msm_thermal.h>
@@ -440,6 +440,7 @@ static struct ion_cp_heap_pdata cp_mm_m7_ion_pdata = {
 	.reusable = FMEM_ENABLED,
 	.mem_is_fmem = FMEM_ENABLED,
 	.fixed_position = FIXED_MIDDLE,
+        .no_nonsecure_alloc = 0,
 };
 
 static struct ion_cp_heap_pdata cp_mfc_m7_ion_pdata = {
@@ -448,6 +449,7 @@ static struct ion_cp_heap_pdata cp_mfc_m7_ion_pdata = {
 	.reusable = 0,
 	.mem_is_fmem = FMEM_ENABLED,
 	.fixed_position = FIXED_HIGH,
+        .no_nonsecure_alloc = 0,
 };
 
 static struct ion_co_heap_pdata co_m7_ion_pdata = {
@@ -927,6 +929,12 @@ static struct htc_battery_platform_data htc_battery_pdev_data = {
 	.igauge.get_battery_id = pm8921_get_batt_id,
 	.igauge.get_battery_soc = pm8921_bms_get_batt_soc,
 	.igauge.get_battery_cc = pm8921_bms_get_batt_cc,
+	.igauge.store_battery_data = pm8921_bms_store_battery_data_emmc,
+	.igauge.store_battery_ui_soc = pm8921_bms_store_battery_ui_soc,
+	.igauge.get_battery_ui_soc = pm8921_bms_get_battery_ui_soc,
+	.igauge.enter_qb_mode = pm8921_bms_enter_qb_mode,
+	.igauge.exit_qb_mode = pm8921_bms_exit_qb_mode,
+	.igauge.qb_mode_pwr_consumption_check = pm8921_qb_mode_pwr_consumption_check,
 	.igauge.is_battery_temp_fault = pm8921_is_batt_temperature_fault,
 	.igauge.is_battery_full = pm8921_is_batt_full,
 	.igauge.get_attr_text = pm8921_gauge_get_attr_text,
@@ -2218,7 +2226,92 @@ static struct himax_virtual_key m7_himax_vk_data[] = {
 };
 
 struct himax_i2c_platform_data_config_type28 evt_config_type28[] = {
-{
+	{
+		.version = 0xA3,
+		.common  = 1,
+		.c1 =  { 0x37, 0xFF, 0x08, 0xFF, 0x08},
+		.c2 =  { 0x3F, 0x00},
+		.c3 =  { 0x62, 0x01, 0x00, 0x01, 0x20, 0x01, 0x20, 0x00, 0x00, 0x11, 0x11},
+		.c4 =  { 0x63, 0x01, 0x00, 0x01, 0x20, 0x01, 0x20, 0x00, 0x00, 0x11, 0x11},
+		.c5 =  { 0x64, 0x31, 0x00, 0x31, 0x20, 0x31, 0x20, 0x00, 0x00, 0x11, 0x10},
+		.c6 =  { 0x65, 0x31, 0x00, 0x31, 0x20, 0x31, 0x20, 0x00, 0x00, 0x11, 0x00},
+		.c7 =  { 0x66, 0x31, 0x00, 0x31, 0x02, 0x31, 0x02, 0x00, 0x00, 0x00, 0x11},
+		.c8 =  { 0x67, 0x31, 0x00, 0x31, 0x20, 0x31, 0x20, 0x00, 0x00, 0x01, 0x01},
+		.c9 =  { 0x68, 0x31, 0x00, 0x31, 0x20, 0x31, 0x20, 0x00, 0x00, 0x00, 0x22},
+		.c10 = { 0x69, 0x31, 0x00, 0x31, 0x20, 0x31, 0x20, 0x00, 0x00, 0x22, 0x22},
+		.c11 = { 0x6A, 0x03, 0x00, 0x03, 0x20, 0x03, 0x20, 0x00, 0x00, 0x22, 0x22},
+		.c12 = { 0x6B, 0x31, 0x00, 0x31, 0x20, 0x31, 0x20, 0x00, 0x00, 0x22, 0x22},
+		.c13 = { 0x6C, 0x31, 0x00, 0x31, 0x20, 0x31, 0x20, 0x00, 0x00, 0x00, 0x00},
+		.c14 = { 0x6D, 0x31, 0x00, 0x31, 0x20, 0x31, 0x20, 0x00, 0x00, 0x00, 0x00},
+		.c15 = { 0x6E, 0x31, 0x00, 0x31, 0x20, 0x31, 0x20, 0x00, 0x00, 0x00, 0x00},
+		.c16 = { 0x6F, 0x31, 0x00, 0x31, 0x20, 0x31, 0x20, 0x00, 0x00, 0x00, 0x00},
+		.c17 = { 0x70, 0x03, 0x00, 0x03, 0x21, 0x03, 0x21, 0x00, 0x00, 0x00, 0x00},
+		.c18 = { 0x7B, 0x03},
+		.c19 = { 0x7C, 0x00, 0xD8, 0x0C},
+		.c20 = { 0x7F, 0x00, 0x04, 0x0A, 0x0A, 0x04, 0x00, 0x00, 0x00},
+		.c21 = { 0xA4, 0x94, 0x62, 0x94, 0x86},
+		.c22 = { 0xB4, 0x07, 0x01, 0x03, 0x03, 0x03, 0x02, 0x07, 0x01, 0x0F, 0x01,
+					   0x0F, 0x01, 0x0F, 0x08},
+		.c23 = { 0xB9, 0x01, 0x36},
+		.c24 = { 0xBA, 0x00},
+		.c25 = { 0xBB, 0x00},
+		.c26 = { 0xBC, 0x00, 0x00, 0x00, 0x00},
+		.c27 = { 0xBD, 0x05, 0x0C},
+		.c28 = { 0xC2, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		.c29 = { 0xC5, 0x0B, 0x1A, 0x00, 0x10, 0x1B, 0x1E, 0x0B, 0x1A, 0x08, 0x16},
+		.c30 = { 0xC6, 0x13, 0x10, 0x1C},
+		.c31 = { 0xC9, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x1C, 0x1C,
+					   0x1D, 0x1D, 0x1B, 0x1B, 0x18, 0x18, 0x15, 0x15, 0x13, 0x13,
+					   0x12, 0x12, 0x0F, 0x0F, 0x1A, 0x1A, 0x1E, 0x1E, 0x19, 0x19,
+					   0x17, 0x17, 0x16, 0x16, 0x11, 0x11, 0x10, 0x10, 0x14, 0x14,
+					   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+					   0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+					   0x00, 0x00, 0x00, 0x00},
+		.c32 = { 0xCB, 0x01, 0xF5, 0xFF, 0xFF, 0x01, 0x00, 0x05, 0x00, 0x9F, 0x00,
+					   0x00, 0x00},
+		.c33 = { 0xD0, 0x06, 0x01},
+		.c34 = { 0xD3, 0x06, 0x01},
+		.c35 = { 0xD5, 0xA5, 0xA5, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+					   0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		.c36 = { 0x40, 0x06, 0x5A,
+					   0xDF, 0x02, 0xF0, 0x12, 0x00, 0x00,
+					   0x38, 0x0E, 0x0A, 0x10, 0x0A, 0x0A, 0x0A, 0x0F, 0x0F, 0x08,
+					   0x28, 0x1C, 0x40, 0x40, 0x28, 0x00, 0x00, 0x00, 0x00, 0x05,
+					   0x10, 0x20},
+		.c37 = { 0x40, 0x95, 0x0F, 0xF0, 0x83, 0x84, 0x00,
+					   0x50, 0x28, 0x0F, 0x0F, 0x83, 0x3C, 0x00, 0x00,
+					   0x11, 0x00, 0x41, 0x42,
+					   0x0F, 0x1F, 0x00, 0x12, 0x00, 0x00,
+					   0x10, 0x02, 0x3C, 0x64, 0x00, 0x00},
+		.c38 = { 0x40, 0x18, 0x27, 0x27, 0x02, 0x14, 0x00, 0x00, 0x00,
+					   0x04, 0x06, 0x24, 0x07, 0x07, 0x00, 0x00, 0x00},
+		.c39 = { 0x40, 0x20, 0x34, 0x05, 0x00, 0x00, 0xD8, 0x0C, 0x00, 0x00, 0x42,
+					   0x03, 0x11, 0x00, 0x00, 0x00, 0x00,
+					   0x10, 0x02, 0x80, 0x00, 0x00, 0x00, 0x00, 0x0C},
+		.c40 = { 0x40, 0xA2, 0x00, 0x09, 0x0B, 0x18, 0x0E, 0x19, 0x0F,
+					   0xA0, 0x82, 0x1E, 0x10,
+					   0x1A, 0x10, 0xA0, 0x28,
+					   0x04, 0x4E, 0x0C, 0x30, 0x07, 0x3C},
+		.c41 = { 0x40, 0x00, 0x94, 0x02, 0x7D, 0x80, 0x61, 0x12, 0x03, 0xE6, 0x09,
+					   0x80, 0x84, 0xFC, 0x0C,
+					   0x01, 0x15, 0x04, 0xAB, 0x86, 0x1E, 0x00, 0x05, 0xC3, 0x0E,
+					   0x0B, 0x8B, 0xC1, 0x00},
+		.c42 = { 0x40, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+		.c43_1 = { 0x40,0x18, 0x27, 0xFF, 0xFF, 0x17, 0x25, 0xFF, 0xFF, 0x16, 0x26,
+						0x12, 0xFF, 0x15, 0x24, 0x11, 0xFF, 0x00, 0x29, 0x10, 0xFF,
+						0x01, 0x22, 0x0F, 0xFF, 0x03, 0x23, 0x0D, 0xFF, 0x02, 0x21,
+						0x0E},
+		.c43_2 = { 0x40,0xFF, 0xFF, 0x20, 0x0C, 0xFF, 0x04, 0x1F, 0x0A, 0xFF,
+						0x05, 0x1B, 0x09, 0xFF, 0x06, 0x1E, 0x0B, 0xFF, 0x19, 0x1A,
+						0x08, 0xFF, 0x07, 0x1C, 0x13, 0xFF, 0x28, 0x1D, 0x14, 0xFF},
+		.c44_1 = { 0x40,0xA3, 0x00, 0x20, 0x00, 0x13, 0x1E, 0x32, 0x00, 0x00, 0x00,
+						0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+						0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+						0x56},
+		.c44_2 = { 0x40, 0x02, 0x12, 0x02, 0x00, 0x04},
+		.c45   = { 0x40, 0x00, 0x00},
+	},
+	{
 		.version = 0xA2,
 		.common  = 1,
 		.c1 =  { 0x37, 0xFF, 0x08, 0xFF, 0x08},
@@ -3325,11 +3418,13 @@ static struct i2c_board_info msm_i2c_gsbi3_info[] = {
 		.platform_data = &syn_ts_3k_data,
 		.irq = MSM_GPIO_TO_INT(TP_ATTz)
 	},
+	#ifdef CONFIG_TOUCHSCREEN_HIMAX
 	{
 		I2C_BOARD_INFO(HIMAX8528_NAME, 0x90 >> 1),
 		.platform_data = &evt_ts_himax_data,
 		.irq = MSM_GPIO_TO_INT(TP_ATTz)
 	},
+	#endif
 };
 
 static ssize_t virtual_syn_keys_show(struct kobject *kobj,
@@ -3351,7 +3446,9 @@ static struct kobj_attribute syn_virtual_keys_attr = {
 };
 static struct attribute *properties_attrs[] = {
 	&syn_virtual_keys_attr.attr,
+#ifdef CONFIG_TOUCHSCREEN_HIMAX
 	&himax_virtual_keys_attr.attr,
+#endif
 	NULL
 };
 static struct attribute_group properties_attr_group = {
@@ -3745,6 +3842,34 @@ static struct i2c_board_info i2c_CM36282_devices_r8[] = {
 	},
 };
 
+#if 0 
+static uint32_t gsbi2_gpio_table[] = {
+       GPIO_CFG(I2C2_DATA_SENS, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
+       GPIO_CFG(I2C2_CLK_SENS, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
+};
+
+
+static uint32_t gsbi3_gpio_table[] = {
+       GPIO_CFG(MONACO_GPIO_TP_I2C_DAT, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
+       GPIO_CFG(MONACO_GPIO_TP_I2C_CLK, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
+};
+
+static void gsbi_qup_i2c_gpio_config(int adap_id, int config_type) {
+
+	printk(KERN_INFO "%s(): adap_id = %d, config_type = %d \n", __func__, adap_id, config_type);
+
+	if ((adap_id == MSM8064_GSBI2_QUP_I2C_BUS_ID) && (config_type == 1)) {
+		gpio_tlmm_config(gsbi2_gpio_table[0], GPIO_CFG_ENABLE);
+		gpio_tlmm_config(gsbi2_gpio_table[1], GPIO_CFG_ENABLE);
+	}
+
+	if ((adap_id == MSM8064_GSBI3_QUP_I2C_BUS_ID) && (config_type == 1)) {
+		gpio_tlmm_config(gsbi3_gpio_table[0], GPIO_CFG_ENABLE);
+		gpio_tlmm_config(gsbi3_gpio_table[1], GPIO_CFG_ENABLE);
+	}
+}
+#endif
+
 #define MSM_WCNSS_PHYS	0x03000000
 #define MSM_WCNSS_SIZE	0x280000
 
@@ -4037,7 +4162,6 @@ __setup("androidboot.dq=", check_dq_setup);
 
 
 #define MSM_SHARED_RAM_PHYS 0x80000000
-
 static void __init m7_map_io(void)
 {
 	msm_shared_ram_phys = MSM_SHARED_RAM_PHYS;
@@ -4180,6 +4304,162 @@ static struct msm_rpmrs_platform_data msm_rpmrs_data __initdata = {
 		[MSM_RPMRS_ID_RPM_CTL]		= MSM_RPM_ID_RPM_CTL,
 	},
 };
+#if 0 
+static struct msm_cpuidle_state msm_cstates[] __initdata = {
+	{0, 0, "C0", "WFI",
+		MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT},
+
+	{0, 1, "C1", "RETENTION",
+		MSM_PM_SLEEP_MODE_RETENTION},
+
+	{0, 2, "C2", "STANDALONE_POWER_COLLAPSE",
+		MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE},
+
+	{0, 3, "C3", "POWER_COLLAPSE",
+		MSM_PM_SLEEP_MODE_POWER_COLLAPSE},
+
+	{1, 0, "C0", "WFI",
+		MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT},
+
+	{1, 1, "C1", "RETENTION",
+		MSM_PM_SLEEP_MODE_RETENTION},
+
+	{1, 2, "C2", "STANDALONE_POWER_COLLAPSE",
+		MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE},
+
+	{2, 0, "C0", "WFI",
+		MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT},
+
+	{2, 1, "C1", "RETENTION",
+		MSM_PM_SLEEP_MODE_RETENTION},
+
+	{2, 2, "C2", "STANDALONE_POWER_COLLAPSE",
+		MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE},
+
+	{3, 0, "C0", "WFI",
+		MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT},
+
+	{3, 1, "C1", "RETENTION",
+		MSM_PM_SLEEP_MODE_RETENTION},
+
+	{3, 2, "C2", "STANDALONE_POWER_COLLAPSE",
+		MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE},
+};
+
+static struct msm_pm_platform_data msm_pm_data[] = {
+	[MSM_PM_MODE(0, MSM_PM_SLEEP_MODE_POWER_COLLAPSE)] = {
+		.idle_supported = 1,
+		.suspend_supported = 1,
+		.idle_enabled = 1,
+		.suspend_enabled = 1,
+	},
+
+	[MSM_PM_MODE(0, MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE)] = {
+		.idle_supported = 1,
+		.suspend_supported = 1,
+		.idle_enabled = 1,
+		.suspend_enabled = 1,
+	},
+
+	[MSM_PM_MODE(0, MSM_PM_SLEEP_MODE_RETENTION)] = {
+		.idle_supported = 1,
+		.suspend_supported = 1,
+		.idle_enabled = 0,
+		.suspend_enabled = 0,
+	},
+
+	[MSM_PM_MODE(0, MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT)] = {
+		.idle_supported = 1,
+		.suspend_supported = 1,
+		.idle_enabled = 1,
+		.suspend_enabled = 1,
+	},
+
+	[MSM_PM_MODE(1, MSM_PM_SLEEP_MODE_POWER_COLLAPSE)] = {
+		.idle_supported = 1,
+		.suspend_supported = 1,
+		.idle_enabled = 1,
+		.suspend_enabled = 1,
+	},
+
+	[MSM_PM_MODE(1, MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE)] = {
+		.idle_supported = 1,
+		.suspend_supported = 1,
+		.idle_enabled = 1,
+		.suspend_enabled = 1,
+	},
+
+	[MSM_PM_MODE(1, MSM_PM_SLEEP_MODE_RETENTION)] = {
+		.idle_supported = 1,
+		.suspend_supported = 1,
+		.idle_enabled = 0,
+		.suspend_enabled = 0,
+	},
+
+	[MSM_PM_MODE(1, MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT)] = {
+		.idle_supported = 1,
+		.suspend_supported = 1,
+		.idle_enabled = 1,
+		.suspend_enabled = 1,
+	},
+
+	[MSM_PM_MODE(2, MSM_PM_SLEEP_MODE_POWER_COLLAPSE)] = {
+		.idle_supported = 1,
+		.suspend_supported = 1,
+		.idle_enabled = 1,
+		.suspend_enabled = 1,
+	},
+
+	[MSM_PM_MODE(2, MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE)] = {
+		.idle_supported = 1,
+		.suspend_supported = 1,
+		.idle_enabled = 1,
+		.suspend_enabled = 1,
+	},
+
+	[MSM_PM_MODE(2, MSM_PM_SLEEP_MODE_RETENTION)] = {
+		.idle_supported = 1,
+		.suspend_supported = 1,
+		.idle_enabled = 0,
+		.suspend_enabled = 0,
+	},
+
+	[MSM_PM_MODE(2, MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT)] = {
+		.idle_supported = 1,
+		.suspend_supported = 1,
+		.idle_enabled = 1,
+		.suspend_enabled = 1,
+	},
+
+	[MSM_PM_MODE(3, MSM_PM_SLEEP_MODE_POWER_COLLAPSE)] = {
+		.idle_supported = 1,
+		.suspend_supported = 1,
+		.idle_enabled = 1,
+		.suspend_enabled = 1,
+	},
+
+	[MSM_PM_MODE(3, MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE)] = {
+		.idle_supported = 1,
+		.suspend_supported = 1,
+		.idle_enabled = 1,
+		.suspend_enabled = 1,
+	},
+
+	[MSM_PM_MODE(3, MSM_PM_SLEEP_MODE_RETENTION)] = {
+		.idle_supported = 1,
+		.suspend_supported = 1,
+		.idle_enabled = 0,
+		.suspend_enabled = 0,
+	},
+
+	[MSM_PM_MODE(3, MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT)] = {
+		.idle_supported = 1,
+		.suspend_supported = 1,
+		.idle_enabled = 1,
+		.suspend_enabled = 1,
+	},
+};
+#endif
 
 static uint8_t spm_wfi_cmd_sequence[] __initdata = {
 	0x03, 0x0f,
@@ -4330,6 +4610,15 @@ static struct msm_spm_platform_data msm_spm_data[] __initdata = {
 };
 
 #ifdef CONFIG_FLASHLIGHT_TPS61310
+#if 0	
+#ifdef CONFIG_MSM_CAMERA_FLASH
+int flashlight_control(int mode)
+{
+pr_info("%s, linear led, mode=%d", __func__, mode);
+	return tps61310_flashlight_control(mode);
+}
+#endif
+#endif
 static void config_flashlight_gpios(void)
 {
 	static uint32_t flashlight_gpio_table[] = {
@@ -4417,6 +4706,59 @@ static struct platform_device m7_device_rpm_regulator __devinitdata = {
 		.platform_data = &m7_rpm_regulator_pdata,
 	},
 };
+
+
+#ifdef CONFIG_BUILD_EDIAG
+static struct android_pmem_platform_data android_pmem_ediag_pdata = {
+	.name = "pmem_ediag",
+	.start = MSM_HTC_PMEM_EDIAG_BASE,
+	.size = MSM_HTC_PMEM_EDIAG_SIZE,
+	.no_allocator = 0,
+	.cached = 0,
+};
+
+static struct android_pmem_platform_data android_pmem_ediag1_pdata = {
+	.name = "pmem_ediag1",
+	.start = MSM_HTC_PMEM_EDIAG1_BASE,
+	.size = MSM_HTC_PMEM_EDIAG1_SIZE,
+	.no_allocator = 0,
+	.cached = 0,
+};
+
+static struct android_pmem_platform_data android_pmem_ediag2_pdata = {
+	.name = "pmem_ediag2",
+	.start = MSM_HTC_PMEM_EDIAG2_BASE,
+	.size = MSM_HTC_PMEM_EDIAG2_SIZE,
+	.no_allocator = 0,
+	.cached = 0,
+};
+
+static struct android_pmem_platform_data android_pmem_ediag3_pdata = {
+	.name = "pmem_ediag3",
+	.start = MSM_HTC_PMEM_EDIAG3_BASE,
+	.size = MSM_HTC_PMEM_EDIAG3_SIZE,
+	.no_allocator = 0,
+	.cached = 0,
+};
+
+
+static struct platform_device android_pmem_ediag_device = {
+	.name = "ediag_pmem",	.id = 1,
+	.dev = { .platform_data = &android_pmem_ediag_pdata },};
+
+static struct platform_device android_pmem_ediag1_device = {
+	.name = "ediag_pmem",	.id = 2,
+	.dev = { .platform_data = &android_pmem_ediag1_pdata },};
+
+static struct platform_device android_pmem_ediag2_device = {
+	.name = "ediag_pmem",	.id = 3,
+	.dev = { .platform_data = &android_pmem_ediag2_pdata },};
+
+static struct platform_device android_pmem_ediag3_device = {
+	.name = "ediag_pmem",	.id = 4,
+	.dev = { .platform_data = &android_pmem_ediag3_pdata },};
+#endif
+
 
 #define MSM_RAM_CONSOLE_BASE   MSM_HTC_RAM_CONSOLE_PHYS
 #define MSM_RAM_CONSOLE_SIZE   MSM_HTC_RAM_CONSOLE_SIZE
@@ -4655,6 +4997,12 @@ static struct platform_device *common_devices[] __initdata = {
 #ifdef CONFIG_QSEECOM
 	&qseecom_device,
 #endif
+#ifdef CONFIG_BUILD_EDIAG
+	&android_pmem_ediag_device,
+	&android_pmem_ediag1_device,
+	&android_pmem_ediag2_device,
+	&android_pmem_ediag3_device,
+#endif
 	&msm8064_device_watchdog,
 	&msm8064_device_saw_regulator_core0,
 	&msm8064_device_saw_regulator_core1,
@@ -4782,6 +5130,19 @@ static struct msm_spi_platform_data m7_qup_spi_gsbi5_pdata = {
 
 #define KS8851_IRQ_GPIO		43
 
+#if 0	
+static struct spi_board_info spi_board_info[] __initdata = {
+	{
+		.modalias               = "ks8851",
+		.irq                    = MSM_GPIO_TO_INT(KS8851_IRQ_GPIO),
+		.max_speed_hz           = 19200000,
+		.bus_num                = 0,
+		.chip_select            = 2,
+		.mode                   = SPI_MODE_0,
+	},
+};
+#endif
+
 #ifdef CONFIG_MSM_CAMERA
 #ifdef CONFIG_RAWCHIPII
 static struct spi_board_info rawchip_spi_board_info[] __initdata = {
@@ -4908,7 +5269,43 @@ static int cir_reset(void)
 
 	return 0;
 }
+#if 0
+static int cir_set_path(int path)
+{
+	int rc = 0;
+	static int prev_path = -1;
 
+	mutex_lock(&cir_path_lock);
+	pr_info("[CIR] %s, prev_path = %d, path = %d\n",
+				__func__, prev_path, path);
+
+	if (path == prev_path) {
+		pr_info("[CIR] %s: path no change\n", __func__);
+		mutex_unlock(&cir_path_lock);
+		return rc;
+	}
+
+	switch(path) {
+		case PATH_NONE:
+			rc = gpio_direction_output(PM8921_GPIO_PM_TO_SYS(CIR_LS_EN),0);
+			break;
+		case PATH_CIR:
+			rc = gpio_direction_output(PM8921_GPIO_PM_TO_SYS(CIR_LS_EN),1);
+			break;
+		default:
+			pr_info("[CIR] %s PATH not support\n", __func__);
+			mutex_unlock(&cir_path_lock);
+			return -1;
+	}
+	if (rc == 0)
+		prev_path = path;
+	else
+		pr_info("[CIR] %s PATH switch failed\n", __func__);
+
+	mutex_unlock(&cir_path_lock);
+	return rc;
+}
+#endif
 static struct cir_platform_data m7_cir_gsbi3_pdata = {
 	
 	.cir_reset = cir_reset,
@@ -4942,7 +5339,12 @@ static void __init m7_i2c_init(void)
 #if defined(CONFIG_KS8851) || defined(CONFIG_KS8851_MODULE)
 static int ethernet_init(void)
 {
-	int ret = 0;
+	int ret;
+#if 0	
+	ret = gpio_request(KS8851_IRQ_GPIO, "ks8851_irq");
+#else
+	ret = 0;
+#endif	
 	if (ret) {
 		pr_err("ks8851 gpio_request failed: %d\n", ret);
 		goto fail;
@@ -5443,7 +5845,11 @@ static void __init m7_common_init(void)
 	m7_init_dsps();
 	msm_spm_init(msm_spm_data, ARRAY_SIZE(msm_spm_data));
 	msm_spm_l2_init(msm_spm_l2_data);
-
+#if 0 
+	msm_pm_set_platform_data(msm_pm_data, ARRAY_SIZE(msm_pm_data));
+	msm_cpuidle_set_states(msm_cstates, ARRAY_SIZE(msm_cstates),
+				msm_pm_data);
+#endif
 	BUG_ON(msm_pm_boot_init(&msm_pm_boot_pdata));
 	msm_pm_init_sleep_status_data(&msm_pm_slp_sts_data);
 	properties_kobj = kobject_create_and_add("board_properties", NULL);

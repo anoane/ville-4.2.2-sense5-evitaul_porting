@@ -33,7 +33,7 @@
 #include <linux/cyttsp-qc.h>
 #include <linux/dma-mapping.h>
 #include <linux/platform_data/qcom_crypto_device.h>
-#include <linux/ion.h>
+#include <linux/msm_ion.h>
 #include <linux/memory.h>
 #include <linux/memblock.h>
 #include <linux/msm_thermal.h>
@@ -507,6 +507,7 @@ static struct ion_cp_heap_pdata cp_mm_m7_ion_pdata = {
 	.reusable = FMEM_ENABLED,
 	.mem_is_fmem = FMEM_ENABLED,
 	.fixed_position = FIXED_MIDDLE,
+	.no_nonsecure_alloc = 0,
 };
 
 static struct ion_cp_heap_pdata cp_mfc_m7_ion_pdata = {
@@ -515,6 +516,7 @@ static struct ion_cp_heap_pdata cp_mfc_m7_ion_pdata = {
 	.reusable = 0,
 	.mem_is_fmem = FMEM_ENABLED,
 	.fixed_position = FIXED_HIGH,
+	.no_nonsecure_alloc = 0,
 };
 
 static struct ion_co_heap_pdata co_m7_ion_pdata = {
@@ -939,6 +941,12 @@ static struct htc_battery_platform_data htc_battery_pdev_data = {
 	.igauge.get_battery_id = pm8921_get_batt_id,
 	.igauge.get_battery_soc = pm8921_bms_get_batt_soc,
 	.igauge.get_battery_cc = pm8921_bms_get_batt_cc,
+	.igauge.store_battery_data = pm8921_bms_store_battery_data_emmc,
+	.igauge.store_battery_ui_soc = pm8921_bms_store_battery_ui_soc,
+	.igauge.get_battery_ui_soc = pm8921_bms_get_battery_ui_soc,
+	.igauge.enter_qb_mode = pm8921_bms_enter_qb_mode,
+	.igauge.exit_qb_mode = pm8921_bms_exit_qb_mode,
+	.igauge.qb_mode_pwr_consumption_check = pm8921_qb_mode_pwr_consumption_check,
 	.igauge.is_battery_temp_fault = pm8921_is_batt_temperature_fault,
 	.igauge.is_battery_full = pm8921_is_batt_full,
 	.igauge.get_attr_text = pm8921_gauge_get_attr_text,
@@ -2520,10 +2528,11 @@ static int pm8921_therm_mitigation[] = {
 	225,
 };
 
+#define MAX_VOLTAGE_MV          4200
 static struct pm8921_charger_platform_data pm8921_chg_pdata __devinitdata = {
-	.safety_time		= 510,
+	.safety_time		= 960,
 	.update_time		= 60000,
-	.max_voltage		= 4200,
+	.max_voltage		= MAX_VOLTAGE_MV,
 	.min_voltage		= 3200,
 	.resume_voltage_delta	= 50,
 	.term_current		= 50,
@@ -2545,9 +2554,14 @@ static struct pm8921_charger_platform_data pm8921_chg_pdata __devinitdata = {
 
 static struct pm8921_bms_platform_data pm8921_bms_pdata __devinitdata = {
 	.r_sense		= 10,
-	.i_test			= 0,
+	.i_test			= 2000,
 	.v_failure		= 3000,
-	.max_voltage_uv		= 4200 * 1000,
+	.max_voltage_uv		= MAX_VOLTAGE_MV * 1000,
+	.rconn_mohm		= 0,
+	.store_batt_data_soc_thre	= 100,
+	.criteria_sw_est_ocv			= 86400000, 
+	.rconn_mohm_sw_est_ocv		= 10,
+	.qb_mode_cc_criteria_uAh = 10000, 
 };
 
 static int __init check_dq_setup(char *str)
