@@ -1,0 +1,1 @@
+make -j8 ARCH=arm SUBARCH=arm CROSS_COMPILE=/home/fabane/Scrivania/arm-eabi-4.6/bin/arm-eabi-

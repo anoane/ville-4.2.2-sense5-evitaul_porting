@@ -24,17 +24,13 @@
 
 
 #include "../devices.h"
-#include "../board-ville.h"
-#if defined (CONFIG_FB_MSM_MDP_ABL)
-#include <linux/fb.h>
-#endif
+#include "../board-elite.h"
 
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
-#define MSM_FB_PRIM_BUF_SIZE (960 * 544 * 4 * 3) /* 4 bpp x 3 pages */
+#define MSM_FB_PRIM_BUF_SIZE (1280 * 736 * 4 * 3) /* 4 bpp x 3 pages */
 #else
-#define MSM_FB_PRIM_BUF_SIZE (960 * 544 * 4 * 2) /* 4 bpp x 2 pages */
+#define MSM_FB_PRIM_BUF_SIZE (1280 * 736 * 4 * 2) /* 4 bpp x 2 pages */
 #endif
-
 
 #ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
 #define MSM_FB_EXT_BUF_SIZE (1920 * 1088 * 2 * 1) /* 2 bpp x 1 page */
@@ -48,7 +44,7 @@
 #define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE + MSM_FB_EXT_BUF_SIZE, 4096)
 
 #ifdef CONFIG_FB_MSM_OVERLAY0_WRITEBACK
-#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((960 * 544 * 3 * 2), 4096)
+#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((1280 * 736 * 3 * 2), 4096)
 #else
 #define MSM_FB_OVERLAY0_WRITEBACK_SIZE (0)
 #endif  /* CONFIG_FB_MSM_OVERLAY0_WRITEBACK */
@@ -76,7 +72,7 @@ static struct platform_device msm_fb_device = {
 	.dev.platform_data = &msm_fb_pdata,
 };
 
-void __init ville_allocate_fb_regions(void)
+void __init elite_allocate_fb_regions(void)
 {
 	void *addr;
 	unsigned long size;
@@ -138,40 +134,6 @@ static struct msm_bus_vectors mdp_1080p_vectors[] = {
 	},
 };
 
-#if 1
-static struct msm_bus_vectors mdp_composition_1_vectors[] = {
-	
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 1280 * 736 * 4 * 60 * 2,
-		.ib = 1280 * 736 * 4 * 60 * 2 * 1.5,
-	},
-};
-
-static struct msm_bus_vectors mdp_composition_2_vectors[] = {
-	
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 1280 * 736 * 4 * 60 * 3,
-		.ib = 1280 * 736 * 4 * 60 * 3 * 1.5,
-	},
-};
-
-
-static struct msm_bus_vectors mdp_composition_3_vectors[] = {
-	
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 1280 * 736 * 4 * 60 * 4,
-		.ib = 1280 * 736 * 4 * 60 * 4 * 1.5,
-	},
-};
-#endif
-
-
 static struct msm_bus_paths mdp_bus_scale_usecases[] = {
 	{
 		ARRAY_SIZE(mdp_init_vectors),
@@ -197,18 +159,6 @@ static struct msm_bus_paths mdp_bus_scale_usecases[] = {
 		ARRAY_SIZE(mdp_1080p_vectors),
 		mdp_1080p_vectors,
 	},
-	{
-		ARRAY_SIZE(mdp_composition_1_vectors),
-		mdp_composition_1_vectors,
-	},
-	{
-		ARRAY_SIZE(mdp_composition_2_vectors),
-		mdp_composition_2_vectors,
-	},
-	{
-		ARRAY_SIZE(mdp_composition_3_vectors),
-		mdp_composition_3_vectors,
-	},
 };
 
 static struct msm_bus_scale_pdata mdp_bus_scale_pdata = {
@@ -219,7 +169,7 @@ static struct msm_bus_scale_pdata mdp_bus_scale_pdata = {
 #endif /* CONFIG_MSM_BUS_SCALING */
 
 static struct msm_panel_common_pdata mdp_pdata = {
-	.gpio = VILLE_GPIO_LCD_TE,
+	.gpio = ELITE_GPIO_LCD_TE,
 #ifdef CONFIG_MSM_BUS_SCALING
 	.mdp_bus_scale_table = &mdp_bus_scale_pdata,
 #endif
@@ -269,53 +219,71 @@ static struct platform_device wfd_device = {
 };
 #endif
 
+uint32_t cfg_panel_te_active[] = {
+	GPIO_CFG(ELITE_GPIO_LCD_TE, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA)
+};
+
+uint32_t cfg_panel_te_sleep[] = {
+	GPIO_CFG(ELITE_GPIO_LCD_TE, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA)
+};
+
 extern int mipi_lcd_on;
 static bool dsi_power_on;
 
 static int mipi_dsi_panel_power(int on)
 {
-	static struct regulator *v_lcm, *v_lcmio, *v_dsivdd;
+	static struct regulator *v_lcmio, *v_lcm, *v_dsivdd;
 	static bool bPanelPowerOn = false;
 	int rc;
 
 	char *lcm_str = "8921_l11";
 	char *lcmio_str = "8921_lvs5";
 	char *dsivdd_str = "8921_l2";
-        
-        printk(KERN_ERR  "[DISP] %s +++\n", __func__);
-	/* To avoid system crash in shutdown for non-panel case */
+
 	if (panel_type == PANEL_ID_NONE)
 		return -ENODEV;
 
 	printk(KERN_INFO "%s: state : %d\n", __func__, on);
 
 	if (!dsi_power_on) {
+
 		v_lcm = regulator_get(&msm_mipi_dsi1_device.dev,
 				lcm_str);
-		if (IS_ERR_OR_NULL(v_lcm)) {
+		if (IS_ERR(v_lcm)) {
 			printk(KERN_ERR "could not get %s, rc = %ld\n",
-				lcm_str, PTR_ERR(v_lcm));
+					lcm_str, PTR_ERR(v_lcm));
 			return -ENODEV;
 		}
-
-		v_lcmio = regulator_get(&msm_mipi_dsi1_device.dev,
-				lcmio_str);
-		if (IS_ERR_OR_NULL(v_lcmio)) {
-			printk(KERN_ERR "could not get %s, rc = %ld\n",
-				lcmio_str, PTR_ERR(v_lcmio));
-			return -ENODEV;
-		}
-
 
 		v_dsivdd = regulator_get(&msm_mipi_dsi1_device.dev,
 				dsivdd_str);
-		if (IS_ERR_OR_NULL(v_dsivdd)) {
-			printk(KERN_ERR "could not get %s, rc = %ld\n",
-				dsivdd_str, PTR_ERR(v_dsivdd));
+		if (IS_ERR(v_dsivdd)) {
+			printk(KERN_ERR "could not get %s, rc = %ld\n", dsivdd_str, PTR_ERR(v_dsivdd));
 			return -ENODEV;
 		}
 
-		rc = regulator_set_voltage(v_lcm, 3000000, 3000000);
+		if (system_rev == 0) { /*for XA*/
+			rc = gpio_request(ELITE_GPIO_V_LCMIO_1V8_EN, "LCMIO_1V8_EN");
+			if (rc) {
+				printk(KERN_ERR "%s:ELITE_GPIO_V_LCMIO_1V8_EN gpio %d request failed, rc=%d\n", __func__, ELITE_GPIO_V_LCMIO_1V8_EN, rc);
+				return -ENODEV;
+			}
+			gpio_direction_output(ELITE_GPIO_V_LCMIO_1V8_EN, 0);
+			/*gpio_free(ELITE_GPIO_V_LCMIO_1V8_EN);*/
+		} else {
+			v_lcmio = regulator_get(&msm_mipi_dsi1_device.dev,
+					lcmio_str);
+			if (IS_ERR(v_lcmio)) {
+				printk(KERN_ERR "could not get %s, rc = %ld\n",
+						lcmio_str, PTR_ERR(v_lcmio));
+				return -ENODEV;
+			}
+		}
+
+		if (panel_type == PANEL_ID_ELITE_SHARP_HX)
+			rc = regulator_set_voltage(v_lcm, 3200000, 3200000);
+		else
+			rc = regulator_set_voltage(v_lcm, 3000000, 3000000);
 		if (rc) {
 			printk(KERN_ERR "%s#%d: set_voltage %s failed, rc=%d\n", __func__, __LINE__, lcm_str, rc);
 			return -EINVAL;
@@ -327,9 +295,9 @@ static int mipi_dsi_panel_power(int on)
 			return -EINVAL;
 		}
 
-		rc = gpio_request(VILLE_GPIO_LCD_RSTz, "LCM_RST_N");
+		rc = gpio_request(ELITE_GPIO_LCD_RSTz, "LCM_RST_N");
 		if (rc) {
-			printk(KERN_ERR "%s:LCM gpio %d request failed, rc=%d\n", __func__,  VILLE_GPIO_LCD_RSTz, rc);
+			printk(KERN_ERR "%s:LCM gpio %d request failed, rc=%d\n", __func__,  ELITE_GPIO_LCD_RSTz, rc);
 			return -EINVAL;
 		}
 
@@ -355,11 +323,15 @@ static int mipi_dsi_panel_power(int on)
 			printk(KERN_ERR "enable regulator %s failed, rc=%d\n", dsivdd_str, rc);
 			return -ENODEV;
 		}
-		usleep(1);
-		rc = regulator_enable(v_lcmio);
-		if (rc) {
-			printk(KERN_ERR "enable regulator %s failed, rc=%d\n", lcmio_str, rc);
-			return -ENODEV;
+
+		if (system_rev == 0) { /*for XA*/
+			gpio_set_value(ELITE_GPIO_V_LCMIO_1V8_EN, 1);
+		} else {
+			rc = regulator_enable(v_lcmio);
+			if (rc) {
+				printk(KERN_ERR "enable regulator %s failed, rc=%d\n", lcmio_str, rc);
+				return -ENODEV;
+			}
 		}
 
 		rc = regulator_enable(v_lcm);
@@ -368,42 +340,69 @@ static int mipi_dsi_panel_power(int on)
 			return -ENODEV;
 		}
 
-		if (!mipi_lcd_on) {
-			usleep(10);
-			gpio_set_value(VILLE_GPIO_LCD_RSTz, 1);
-			usleep(1);
-			gpio_set_value(VILLE_GPIO_LCD_RSTz, 0);
-			usleep(35);
-			gpio_set_value(VILLE_GPIO_LCD_RSTz, 1);
+		elite_lcd_id_power(PM_GPIO_PULL_NO);
+
+		rc = gpio_tlmm_config(cfg_panel_te_active[0], GPIO_CFG_ENABLE);
+		if (rc) {
+			pr_err("%s: gpio_tlmm_config(%#x)=%d\n", __func__,
+					cfg_panel_te_active[0], rc);
 		}
-		usleep(60);
+
+		if (panel_type != PANEL_ID_ELITE_SHARP_HX) {
+			if (!mipi_lcd_on) {
+				usleep(20);
+				gpio_set_value(ELITE_GPIO_LCD_RSTz, 1);
+			}
+		} else {
+			if (!mipi_lcd_on) {
+				usleep(20);
+				gpio_set_value(ELITE_GPIO_LCD_RSTz, 1);
+				usleep(1);
+				gpio_set_value(ELITE_GPIO_LCD_RSTz, 0);
+				usleep(1);
+				gpio_set_value(ELITE_GPIO_LCD_RSTz, 1);
+			}
+		}
 
 		bPanelPowerOn = true;
+
 	} else {
 		printk(KERN_INFO "%s: off\n", __func__);
 		if (!bPanelPowerOn) return 0;
-		hr_msleep(100);
-		gpio_set_value(VILLE_GPIO_LCD_RSTz, 0);
+
+		elite_lcd_id_power(PM_GPIO_PULL_DN);
+
+		rc = gpio_tlmm_config(cfg_panel_te_sleep[0], GPIO_CFG_ENABLE);
+		if (rc) {
+			pr_err("%s: gpio_tlmm_config(%#x)=%d\n", __func__,
+					cfg_panel_te_sleep[0], rc);
+		}
+
+		gpio_set_value(ELITE_GPIO_LCD_RSTz, 0);
 		hr_msleep(10);
+
+		if (regulator_disable(v_lcm)) {
+			printk(KERN_ERR "%s: Unable to disable the regulator: %s\n", __func__, lcm_str);
+			return -EINVAL;
+		}
+
+		if (system_rev == 0) { /*for XA*/
+			gpio_set_value(ELITE_GPIO_V_LCMIO_1V8_EN, 0);
+		} else {
+			if (regulator_disable(v_lcmio)) {
+				printk(KERN_ERR "%s: Unable to enable the regulator: %s\n", __func__, lcmio_str);
+				return -EINVAL;
+			}
+		}
 
 		if (regulator_disable(v_dsivdd)) {
 			printk(KERN_ERR "%s: Unable to enable the regulator: %s\n", __func__, dsivdd_str);
 			return -EINVAL;
 		}
 
-		if (regulator_disable(v_lcm)) {
-			printk(KERN_ERR "%s: Unable to enable the regulator: %s\n", __func__, lcm_str);
-			return -EINVAL;
-		}
-		hr_msleep(5);
-		if (regulator_disable(v_lcmio)) {
-			printk(KERN_ERR "%s: Unable to enable the regulator: %s\n", __func__, lcmio_str);
-			return -EINVAL;
-		}
-
 		rc = regulator_set_optimum_mode(v_dsivdd, 100);
 		if (rc < 0) {
-			printk(KERN_ERR "%s: Unable to enable the regulator: %s\n", __func__, dsivdd_str);
+			printk(KERN_ERR "%s: Unable to disable the regulator: %s\n", __func__, dsivdd_str);
 			return -EINVAL;
 		}
 
@@ -418,13 +417,13 @@ static char mipi_dsi_splash_is_enabled(void)
 }
 
 static struct mipi_dsi_platform_data mipi_dsi_pdata = {
-	.vsync_gpio = VILLE_GPIO_LCD_TE,
+	.vsync_gpio = ELITE_GPIO_LCD_TE,
 	.dsi_power_save = mipi_dsi_panel_power,
 	.splash_is_enabled = mipi_dsi_splash_is_enabled,
 };
 
-static struct platform_device mipi_dsi_ville_panel_device = {
-	.name = "mipi_ville",
+static struct platform_device mipi_dsi_elite_panel_device = {
+	.name = "mipi_elite",
 	.id = 0,
 };
 
@@ -466,6 +465,9 @@ static struct lcdc_platform_data dtv_pdata = {
 #ifdef CONFIG_MSM_BUS_SCALING
 	.bus_scale_table = &dtv_bus_scale_pdata,
 #endif
+#ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
+//	.lcdc_power_save = hdmi_panel_power,
+#endif
 };
 
 static void __init msm8960_set_display_params(char *prim_panel, char *ext_panel)
@@ -476,7 +478,6 @@ static void __init msm8960_set_display_params(char *prim_panel, char *ext_panel)
 		pr_debug("msm_fb_pdata.prim_panel_name %s\n",
 			msm_fb_pdata.prim_panel_name);
 	}
-
 	if (strnlen(ext_panel, PANEL_NAME_MAX_LEN)) {
 		strlcpy(msm_fb_pdata.ext_panel_name, ext_panel,
 			PANEL_NAME_MAX_LEN);
@@ -487,14 +488,15 @@ static void __init msm8960_set_display_params(char *prim_panel, char *ext_panel)
 
 void __init msm8960_init_fb(void)
 {
-	msm8960_set_display_params("mipi_ville", "hdmi_msm");
+	msm8960_set_display_params("mipi_elite", "hdmi_msm");
 	platform_device_register(&msm_fb_device);
 #ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
 	platform_device_register(&wfd_panel_device);
 	platform_device_register(&wfd_device);
 #endif
-	platform_device_register(&mipi_dsi_ville_panel_device);
+	platform_device_register(&mipi_dsi_elite_panel_device);
 	msm_fb_register_device("mdp", &mdp_pdata);
 	msm_fb_register_device("mipi_dsi", &mipi_dsi_pdata);
+
 	msm_fb_register_device("dtv", &dtv_pdata);
 }

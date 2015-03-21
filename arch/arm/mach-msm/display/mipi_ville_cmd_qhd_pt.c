@@ -3,20 +3,21 @@
 #include "mipi_ville.h"
 
 static struct mipi_dsi_phy_ctrl dsi_cmd_mode_phy_db = {
-	/* DSI_BIT_CLK at 250MHz, 2 lane, RGB888 */
-	/* regulator */
-	{0x03, 0x0a, 0x04, 0x00, 0x20},
-	/* timing */
-	/* clk_rate:600MHz */
-	{0xb9, 0x8e, 0x20, 0x00, 0x24, 0x50,
-	0x11, 0x90, 0x24, 0x03, 0x04, 0xa0},
-	/* phy ctrl */
-	{0x5f, 0x00, 0x00, 0x10},
-	/* strength */
-	{0xff, 0x00, 0x06, 0x00},
-	/* pll control */
-	{0x0, 0xdf, 0xb1, 0xda, 0x00, 0x50, 0x48, 0x63, 0x41, 0x0f, 0x01,
-	0x00, 0x14, 0x03, 0x00, 0x02, 0x00, 0x20, 0x00, 0x01},
+	
+			
+			{0x03, 0x0a, 0x04, 0x00, 0x20},
+			
+			
+			{0xb9, 0x8e, 0x20, 0x00, 0x24, 0x50, 0x11, 0x90, 0x24,
+			0x03, 0x04, 0xa0},
+			 
+			{0x5f, 0x00, 0x00, 0x10},
+			 
+			{0xff, 0x00, 0x06, 0x00},
+			
+			{0x0, 0xdf, 0xb1, 0xda, 0x00, 0x50, 0x48, 0x63,
+			0x41, 0x0f, 0x01,
+			0x00, 0x14, 0x03, 0x00, 0x02, 0x00, 0x20, 0x00, 0x01 },
 };
 
 static struct msm_panel_info pinfo;
@@ -34,9 +35,9 @@ static int __init mipi_cmd_ville_qhd_pt_init(void)
 	pinfo.pdest = DISPLAY_1;
 	pinfo.wait_cycle = 0;
 	pinfo.bpp = 24;
-
 	pinfo.width = 49;
 	pinfo.height = 87;
+	pinfo.camera_backlight = 135;
 
 	pinfo.lcdc.h_back_porch = 64;
 	pinfo.lcdc.h_front_porch = 96;
@@ -44,13 +45,11 @@ static int __init mipi_cmd_ville_qhd_pt_init(void)
 	pinfo.lcdc.v_back_porch = 16;
 	pinfo.lcdc.v_front_porch = 16;
 	pinfo.lcdc.v_pulse_width = 4;
-
 	pinfo.lcd.v_back_porch = 16;
 	pinfo.lcd.v_front_porch = 16;
 	pinfo.lcd.v_pulse_width = 4;
-
-	pinfo.lcdc.border_clr = 0;	/* blk */
-	pinfo.lcdc.underflow_clr = 0xff;	/* blue */
+	pinfo.lcdc.border_clr = 0;	
+	pinfo.lcdc.underflow_clr = 0xff;	
 	pinfo.lcdc.hsync_skew = 0;
 	pinfo.bl_max = 255;
 	pinfo.bl_min = 1;
@@ -58,16 +57,16 @@ static int __init mipi_cmd_ville_qhd_pt_init(void)
 	pinfo.clk_rate = 482000000;
 	pinfo.lcd.vsync_enable = TRUE;
 	pinfo.lcd.hw_vsync_mode = TRUE;
-	pinfo.lcd.refx100 = 5700;
-	pinfo.read_pointer = 275;
+	pinfo.lcd.refx100 = 6096; /* adjust refx100 to prevent tearing */
+
 	pinfo.mipi.mode = DSI_CMD_MODE;
 	pinfo.mipi.dst_format = DSI_CMD_DST_FORMAT_RGB888;
 	pinfo.mipi.vc = 0;
-
+	pinfo.mipi.rgb_swap = DSI_RGB_SWAP_RGB;
 	pinfo.mipi.data_lane0 = TRUE;
 	pinfo.mipi.data_lane1 = TRUE;
-	pinfo.mipi.t_clk_post = 0x3;
-	pinfo.mipi.t_clk_pre = 0x2B;
+	pinfo.mipi.t_clk_post = 0x0a;
+	pinfo.mipi.t_clk_pre = 0x20;
 	pinfo.mipi.stream = 0;	/* dma_p */
 	pinfo.mipi.mdp_trigger = DSI_CMD_TRIGGER_NONE;
 	pinfo.mipi.dma_trigger = DSI_CMD_TRIGGER_SW;
@@ -76,9 +75,7 @@ static int __init mipi_cmd_ville_qhd_pt_init(void)
 	pinfo.mipi.insert_dcs_cmd = TRUE;
 	pinfo.mipi.wr_mem_continue = 0x3c;
 	pinfo.mipi.wr_mem_start = 0x2c;
-	pinfo.mipi.frame_rate = 60;
 	pinfo.mipi.dsi_phy_db = &dsi_cmd_mode_phy_db;
-	pinfo.mipi.esc_byte_ratio = 4;
 
 	ret = mipi_ville_device_register(&pinfo, MIPI_DSI_PRIM,
 						MIPI_DSI_PANEL_QHD_PT);

@@ -11,7 +11,7 @@ obj-$(CONFIG_MACH_VIGOR) += vigor-panel.o
 obj-$(CONFIG_MACH_RUBY) += ruby-panel.o
 # msm8960
 obj-$(CONFIG_MACH_VILLE) += mipi_ville.o mipi_ville_cmd_qhd_pt.o board-ville-panel.o
-obj-$(CONFIG_MACH_ELITE) += board-elite-display.o board-elite-panel.o
+obj-$(CONFIG_MACH_ELITE) += mipi_elite.o mipi_elite_720p_pt.o board-elite-panel.o
 obj-$(CONFIG_MACH_JET) += board-jet-panel.o
 obj-$(CONFIG_MACH_JEWEL_DD) += board-jel_dd-panel.o
 obj-$(CONFIG_MACH_EVITA_UTL) += board-evita_utl-display.o board-evita_utl-panel.o
